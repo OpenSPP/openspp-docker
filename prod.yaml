@@ -17,8 +17,49 @@ services:
       - db
     networks:
       default:
+      inverseproxy_shared:
     labels:
       doodba.domain.main: ""
+      traefik.enable: "true"
+      traefik.domain: ""
+      traefik.forbiddenCrawlers-0.frontend.headers.customResponseHeaders:
+        "X-Robots-Tag:noindex, nofollow"
+      traefik.forbiddenCrawlers-0.frontend.rule: Host:;Path:/{anything:.*}
+      traefik.longpolling-0.frontend.rule: Host:;Path:/longpolling/{anything:.*}
+      traefik.longpolling-0.port: 8072
+      traefik.http.middlewares.OpenSPP-15-0-prod-buffering.buffering.retryExpression:
+        IsNetworkError() && Attempts() < 5
+      traefik.http.middlewares.OpenSPP-15-0-prod-compress.compress: "true"
+      ? traefik.http.middlewares.OpenSPP-15-0-prod-forbid-crawlers.headers.customResponseHeaders.X-Robots-Tag
+      : "noindex, nofollow"
+      traefik.http.middlewares.OpenSPP-15-0-prod-forceSecure.headers.forceSTSHeader: "true"
+      traefik.http.middlewares.OpenSPP-15-0-prod-forceSecure.headers.sslRedirect: "true"
+      traefik.http.services.OpenSPP-15-0-prod-main.loadbalancer.server.port: 8069
+      traefik.http.services.OpenSPP-15-0-prod-longpolling.loadbalancer.server.port: 8072
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-0.rule:
+        Host() && PathPrefix(`/longpolling/`)
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-0.service: OpenSPP-15-0-prod-longpolling
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-0.middlewares: OpenSPP-15-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.rule:
+        Host() && PathPrefix(`/longpolling/`)
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.service: OpenSPP-15-0-prod-longpolling
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.middlewares: OpenSPP-15-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.tls.certResolver: letsencrypt
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-0.rule:
+        Host() && (PathPrefix(`/`))
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-0.service: OpenSPP-15-0-prod-main
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-0.middlewares:
+        OpenSPP-15-0-prod-buffering, OpenSPP-15-0-prod-compress,
+        OpenSPP-15-0-prod-forbid-crawlers, OpenSPP-15-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.rule:
+        Host() && (PathPrefix(`/`))
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.service: OpenSPP-15-0-prod-main
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.middlewares:
+        OpenSPP-15-0-prod-buffering, OpenSPP-15-0-prod-compress,
+        OpenSPP-15-0-prod-forbid-crawlers, OpenSPP-15-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.tls.certResolver: letsencrypt
 
   db:
     extends:

@@ -8,8 +8,12 @@ backup_email_to: null
 backup_image_version: latest
 backup_tz: UTC
 cidr_whitelist: null
-domains_prod: null
-domains_test: null
+domains_prod:
+  hosts:
+    - demo.openspp.org
+domains_test:
+  hosts:
+    - demo-staging.openspp.org
 gitlab_url: null
 odoo_dbfilter: ^prod
 odoo_initial_lang: en_US
@@ -18,8 +22,7 @@ odoo_oci_image: openspp/openspp
 odoo_proxy: traefik
 odoo_version: 15.0
 paths_without_crawlers:
-  - /web
-  - /website/info
+  - /
 postgres_cidr_whitelist: null
 postgres_dbname: prod
 postgres_exposed: false
