@@ -1,5 +1,14 @@
 registry:
-  - g2p_registry_base
-  - g2p_registry_group
-  - g2p_registry_individual
-  - g2p_registry_membership
+  - "*"
+openspp_registry:
+  - "*"
+openspp_program:
+  - "*"
+openspp_communication:
+  - "*"
+openspp_theme:
+  - "*"
+openspp_grievance_redress_mechanism:
+  - "*"
+openspp_demo:
+  - "*"

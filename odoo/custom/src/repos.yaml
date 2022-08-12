@@ -60,38 +60,38 @@ openspp_communication:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-demo.git
+    openspp: https://github.com/openspp-project/openspp-communication.git
   target: openspp main
   merges:
     - openspp main
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-#openspp_theme:
-#  defaults:
-#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-#    # for a sane value of 100 commits)
-#    depth: $DEPTH_DEFAULT
-#  remotes:
-#    openspp: https://github.com/openspp-project/openspp-demo.git
-#  target: openspp main
-#  merges:
-#    - openspp main
-#    # Example of a merge of the PR with the number <PR>
-#    # - oca refs/pull/<PR>/head
-#openspp_grievance_redress_mechanism:
-#  defaults:
-#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-#    # for a sane value of 100 commits)
-#    depth: $DEPTH_DEFAULT
-#  remotes:
-#    openspp: https://github.com/openspp-project/openspp-demo.git
-#  target: openspp main
-#  merges:
-#    - openspp main
-#    # Example of a merge of the PR with the number <PR>
-#    # - oca refs/pull/<PR>/head
+openspp_theme:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/openspp-project/openspp-theme.git
+  target: openspp main
+  merges:
+    - openspp main
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
+openspp_grievance_redress_mechanism:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/openspp-project/openspp-grievance-redress-mechanism.git
+  target: openspp main
+  merges:
+    - openspp main
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openspp_demo:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
