@@ -1,0 +1,53 @@
+version: "2.4"
+
+services:
+  odoo:
+    image: openspp/openspp:15.0
+    build:
+      context: ./odoo
+      args:
+        ODOO_VERSION: "15.0"
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
+    environment:
+      EMAIL_FROM: "contact@openspp.org"
+      PGDATABASE: &dbname prod
+      PGUSER: &dbuser "odoo"
+      PROXY_MODE: "true"
+      LIST_DB: "false"
+    tty: true
+    volumes:
+      - filestore:/var/lib/odoo:z
+    labels:
+      traefik.backend.buffering.retryExpression: IsNetworkError() && Attempts() < 5
+      traefik.docker.network: "inverseproxy_shared"
+      traefik.frontend.passHostHeader: "true"
+      traefik.port: "8069"
+
+  db:
+    image: ghcr.io/tecnativa/postgres-autoconf:13-alpine
+    shm_size: 4gb
+    environment:
+      POSTGRES_DB: *dbname
+      POSTGRES_USER: *dbuser
+      CONF_EXTRA: |
+        work_mem = 512MB
+    volumes:
+      - db:/var/lib/postgresql/data:z
+
+  smtpfake:
+    image: docker.io/mailhog/mailhog
+
+  backup:
+    image: ghcr.io/tecnativa/docker-duplicity-postgres-s3:latest
+    hostname: backup
+    init: true
+    environment:
+      DBS_TO_INCLUDE: "^prod"
+      DST: "boto3+s3://example_bucket"
+      PGDATABASE: *dbname
+      PGUSER: *dbuser
+      TZ: "UTC"
+    volumes:
+      - backup_cache:/root:z
+      - filestore:/mnt/backup/src/odoo:z
