@@ -41,6 +41,7 @@ services:
   backup:
     image: ghcr.io/tecnativa/docker-duplicity-postgres-s3:latest
     hostname: backup
+    domainname: demo.openspp.org
     init: true
     environment:
       DBS_TO_INCLUDE: "^prod"

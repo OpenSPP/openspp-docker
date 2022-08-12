@@ -23,34 +23,34 @@ services:
       globalwhitelist_shared:
       inverseproxy_shared:
     labels:
-      doodba.domain.main: ""
+      doodba.domain.main: "demo-test.openspp.org"
       traefik.enable: "true"
-      traefik.domain: ""
+      traefik.domain: "demo-test.openspp.org"
       traefik.forbiddenCrawlers-0.frontend.headers.customResponseHeaders:
         "X-Robots-Tag:noindex, nofollow"
-      traefik.forbiddenCrawlers-0.frontend.rule: Host:;Path:/{anything:.*}
-      traefik.longpolling-0.frontend.rule: Host:;Path:/longpolling/{anything:.*}
+      traefik.forbiddenCrawlers-0.frontend.rule: Host:demo-test.openspp.org;Path:/{anything:.*}
+      traefik.longpolling-0.frontend.rule: Host:demo-test.openspp.org;Path:/longpolling/{anything:.*}
       traefik.longpolling-0.port: 8072
       traefik.http.services.OpenSPP-15-0-test-main.loadbalancer.server.port: 8069
       traefik.http.services.OpenSPP-15-0-test-longpolling.loadbalancer.server.port: 8072
       traefik.http.routers.OpenSPP-15-0-test-longpolling-0.rule:
-        Host() && PathPrefix(`/longpolling/`)
+        Host(`demo-test.openspp.org`) && PathPrefix(`/longpolling/`)
       traefik.http.routers.OpenSPP-15-0-test-longpolling-0.service: OpenSPP-15-0-test-longpolling
       traefik.http.routers.OpenSPP-15-0-test-longpolling-0.middlewares: OpenSPP-15-0-test-forceSecure
       traefik.http.routers.OpenSPP-15-0-test-longpolling-secure-0.rule:
-        Host() && PathPrefix(`/longpolling/`)
+        Host(`demo-test.openspp.org`) && PathPrefix(`/longpolling/`)
       traefik.http.routers.OpenSPP-15-0-test-longpolling-secure-0.service: OpenSPP-15-0-test-longpolling
       traefik.http.routers.OpenSPP-15-0-test-longpolling-secure-0.middlewares: OpenSPP-15-0-test-forceSecure
       traefik.http.routers.OpenSPP-15-0-test-longpolling-secure-0.tls: "true"
       traefik.http.routers.OpenSPP-15-0-test-longpolling-secure-0.tls.certResolver: letsencrypt
       traefik.http.routers.OpenSPP-15-0-test-forbiddenCrawlers-0.rule:
-        Host() && (PathPrefix(`/`))
+        Host(`demo-test.openspp.org`) && (PathPrefix(`/`))
       traefik.http.routers.OpenSPP-15-0-test-forbiddenCrawlers-0.service: OpenSPP-15-0-test-main
       traefik.http.routers.OpenSPP-15-0-test-forbiddenCrawlers-0.middlewares:
         OpenSPP-15-0-test-buffering, OpenSPP-15-0-test-compress,
         OpenSPP-15-0-test-forbid-crawlers, OpenSPP-15-0-test-forceSecure
       traefik.http.routers.OpenSPP-15-0-test-forbiddenCrawlers-secure-0.rule:
-        Host() && (PathPrefix(`/`))
+        Host(`demo-test.openspp.org`) && (PathPrefix(`/`))
       traefik.http.routers.OpenSPP-15-0-test-forbiddenCrawlers-secure-0.service: OpenSPP-15-0-test-main
       traefik.http.routers.OpenSPP-15-0-test-forbiddenCrawlers-secure-0.middlewares:
         OpenSPP-15-0-test-buffering, OpenSPP-15-0-test-compress,
@@ -81,11 +81,11 @@ services:
           - smtplocal
       inverseproxy_shared:
     labels:
-      doodba.domain.main: ""
+      doodba.domain.main: "demo-test.openspp.org"
       traefik.docker.network: "inverseproxy_shared"
       traefik.enable: "true"
       traefik.frontend.passHostHeader: "true"
-      traefik.mailhog-0.frontend.rule: Host:;PathPrefixStrip:/smtpfake/
+      traefik.mailhog-0.frontend.rule: Host:demo-test.openspp.org;PathPrefixStrip:/smtpfake/
       traefik.mailhog-0.port: 8025
       # Mailhog service
       traefik.http.middlewares.OpenSPP-15-0-test-mailhog-stripprefix.stripPrefix.prefixes: /smtpfake/
@@ -98,14 +98,14 @@ services:
       traefik.http.middlewares.OpenSPP-15-0-test-forceSecure.headers.forceSTSHeader: "true"
       traefik.http.middlewares.OpenSPP-15-0-test-forceSecure.headers.sslRedirect: "true"
       traefik.http.routers.OpenSPP-15-0-test-mailhog-0.rule:
-        Host() && PathPrefix(`/smtpfake/`)
+        Host(`demo-test.openspp.org`) && PathPrefix(`/smtpfake/`)
       traefik.http.routers.OpenSPP-15-0-test-mailhog-0.service: OpenSPP-15-0-test-mailhog
       traefik.http.routers.OpenSPP-15-0-test-mailhog-0.middlewares:
         OpenSPP-15-0-test-buffering, OpenSPP-15-0-test-compress,
         OpenSPP-15-0-test-forbid-crawlers, OpenSPP-15-0-test-forceSecure,
         OpenSPP-15-0-test-mailhog-stripprefix
       traefik.http.routers.OpenSPP-15-0-test-mailhog-secure-0.rule:
-        Host() && PathPrefix(`/smtpfake/`)
+        Host(`demo-test.openspp.org`) && PathPrefix(`/smtpfake/`)
       traefik.http.routers.OpenSPP-15-0-test-mailhog-secure-0.service: OpenSPP-15-0-test-mailhog
       traefik.http.routers.OpenSPP-15-0-test-mailhog-secure-0.middlewares:
         OpenSPP-15-0-test-buffering, OpenSPP-15-0-test-compress,

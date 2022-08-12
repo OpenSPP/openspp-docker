@@ -9,11 +9,11 @@ backup_image_version: latest
 backup_tz: UTC
 cidr_whitelist: null
 domains_prod:
-  hosts:
-    - demo.openspp.org
+  - hosts:
+      - demo.openspp.org
 domains_test:
-  hosts:
-    - demo-staging.openspp.org
+  - hosts:
+      - demo-test.openspp.org
 gitlab_url: null
 odoo_dbfilter: ^prod
 odoo_initial_lang: en_US
