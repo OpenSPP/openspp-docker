@@ -1,4 +1,4 @@
-registry:
+openg2p_registry:
   - "*"
 openspp_registry:
   - "*"
@@ -12,3 +12,11 @@ openspp_grievance_redress_mechanism:
   - "*"
 openspp_demo:
   - "*"
+odoo_celery:
+  - "*"
+helpdesk:
+  - helpdesk_mgmt
+server-tools:
+  - base_multi_image
+cybro_addons:
+  - odoo_dynamic_dashboard

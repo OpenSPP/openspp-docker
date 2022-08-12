@@ -1,3 +1,8 @@
 git+https://github.com/OCA/openupgradelib.git@master
 unicodecsv
 unidecode
+twilio==7.9.2
+boto3==1.24.2
+celery
+flower
+faker

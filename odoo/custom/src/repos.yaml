@@ -14,7 +14,7 @@
     - odoo $ODOO_VERSION
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-registry:
+openg2p_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
@@ -103,5 +103,31 @@ openspp_demo:
   target: openspp main
   merges:
     - openspp main
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
+odoo_celery:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    newlogic: https://github.com/newlogic/odoo-celery.git
+  target: newlogic 15.0
+  merges:
+    - newlogic 15.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
+cybro_addons:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    cybro: https://github.com/CybroOdoo/CybroAddons.git
+  target: cybro 15.0
+  merges:
+    - cybro 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
