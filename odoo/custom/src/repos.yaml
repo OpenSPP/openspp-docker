@@ -22,9 +22,9 @@ openg2p_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openg2p: https://github.com/OpenG2P/openg2p-registry.git
-  target: openg2p main
+  target: openg2p 15.0
   merges:
-    - openg2p main
+    - openg2p 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_registry:
@@ -37,7 +37,7 @@ openspp_registry:
     openspp: https://github.com/openspp-project/openspp-registry.git
   target: openspp 15.0
   merges:
-    - openspp  15.0
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_program:
