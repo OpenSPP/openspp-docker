@@ -35,9 +35,9 @@ openspp_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp-project/openspp-registry.git
-  target: openspp main
+  target: openspp 15.0
   merges:
-    - openspp main
+    - openspp  15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_program:
@@ -48,9 +48,9 @@ openspp_program:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp-project/openspp-program.git
-  target: openspp main
+  target: openspp 15.0
   merges:
-    - openspp main
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_communication:
@@ -61,9 +61,9 @@ openspp_communication:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp-project/openspp-communication.git
-  target: openspp main
+  target: openspp 15.0
   merges:
-    - openspp main
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_theme:
@@ -74,9 +74,9 @@ openspp_theme:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp-project/openspp-theme.git
-  target: openspp main
+  target: openspp 15.0
   merges:
-    - openspp main
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_grievance_redress_mechanism:
@@ -87,9 +87,9 @@ openspp_grievance_redress_mechanism:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp-project/openspp-grievance-redress-mechanism.git
-  target: openspp main
+  target: openspp 15.0
   merges:
-    - openspp main
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_demo:
@@ -100,9 +100,9 @@ openspp_demo:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp-project/openspp-demo.git
-  target: openspp main
+  target: openspp 15.0
   merges:
-    - openspp main
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 odoo_celery:
