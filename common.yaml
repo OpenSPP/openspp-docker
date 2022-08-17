@@ -23,6 +23,12 @@ services:
       traefik.docker.network: "inverseproxy_shared"
       traefik.frontend.passHostHeader: "true"
       traefik.port: "8069"
+  odoo-celery:
+    volumes:
+      # Host paths (odoo modules, src code & conf)
+      - ./odoo/custom:/opt/odoo/custom:ro,z
+    environment:
+      - LOG_LEVEL=debug
 
   db:
     image: ghcr.io/tecnativa/postgres-autoconf:13-alpine
