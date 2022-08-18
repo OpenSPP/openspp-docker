@@ -10,7 +10,7 @@ services:
       public:
     ports:
       - "127.0.0.1:15899:6899"
-      - "127.0.0.1:15069:8069"
+      - "127.0.0.1:82:8069"
     environment:
       PORT: "6899 8069"
       TARGET: odoo
@@ -32,7 +32,7 @@ services:
         COMPILE: "false"
     environment:
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-devel}"
-      LIST_DB: "true"
+      LIST_DB: "false"
       DEBUGPY_ENABLE: "${DOODBA_DEBUGPY_ENABLE:-0}"
       PGDATABASE: &dbname devel
       PYTHONDONTWRITEBYTECODE: 1
