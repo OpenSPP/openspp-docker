@@ -1,5 +1,7 @@
 openg2p_registry:
   - "*"
+openg2p_program:
+  - "*"
 openspp_registry:
   - "*"
 openspp_program:
