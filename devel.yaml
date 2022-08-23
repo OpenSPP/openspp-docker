@@ -112,7 +112,6 @@ services:
     command:
       bash -c "cd /opt/odoo/custom/src/odoo_celery/celery && /usr/local/bin/celery  -A
       odoo worker --loglevel=info --concurrency 2"
-
   db:
     extends:
       file: common.yaml
