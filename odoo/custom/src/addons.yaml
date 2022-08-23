@@ -22,3 +22,5 @@ server-tools:
   - base_multi_image
 cybro_addons:
   - odoo_dynamic_dashboard
+queue:
+  - queue_job
