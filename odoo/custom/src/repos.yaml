@@ -27,6 +27,19 @@ openg2p_registry:
     - openg2p 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
+openg2p_program:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openg2p: https://github.com/OpenG2P/openg2p-program.git
+  target: openg2p 15.0
+  merges:
+    - openg2p 15.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openspp_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
