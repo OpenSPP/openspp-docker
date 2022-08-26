@@ -63,48 +63,6 @@ services:
       - --workers=0
       - --dev=reload,qweb,werkzeug,xml
 
-  rabbitmq:
-    image: rabbitmq:3
-    ports:
-      - "5672:5672"
-    environment:
-      - RABBITMQ_DEFAULT_USER=odoo
-      - RABBITMQ_DEFAULT_PASS=odoo
-
-  odoo-celery:
-    extends:
-      file: common.yaml
-      service: odoo
-    build:
-      args:
-        # To aggregate in development, use `setup-devel.yaml`
-        AGGREGATE: "false"
-        # Export these variables to own files created by odoo in your filesystem
-        UID: "${UID:-1000}"
-        GID: "${GID:-1000}"
-        # No need for this in development
-        PIP_INSTALL_ODOO: "false"
-        CLEAN: "false"
-        COMPILE: "false"
-    environment:
-      - ODOO_CELERY_USER=admin
-      - ODOO_CELERY_PASSWORD=admin
-      - ODOO_CELERY_BROKER=pyamqp://odoo:odoo@rabbitmq//
-      - ODOO_CELERY_BROKER_HEARTBEAT=120
-      - ODOO_CELERY_WORKER_PREFETCH_MULTIPLIER=4
-    volumes:
-      # Host paths (.ssh configuration)
-      - ~/.ssh/:/opt/odoo/.ssh/:cached
-      # Named volumes
-      - openspp-odoo-data:/var/lib/odoo/data
-      - openspp-odoo-testlogs:/var/lib/odoo/logs
-      - openspp-odoo-modules:/opt/odoo/custom:ro,z
-      - ./odoo/custom:/opt/odoo/custom:ro,z
-      - ./odoo/auto:/opt/odoo/auto:rw,z
-    depends_on:
-      - db
-      - rabbitmq
-
   db:
     extends:
       file: common.yaml
@@ -214,6 +172,3 @@ networks:
 volumes:
   filestore:
   db:
-  openspp-odoo-data:
-  openspp-odoo-testlogs:
-  openspp-odoo-modules:
