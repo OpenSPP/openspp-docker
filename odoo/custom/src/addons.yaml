@@ -14,8 +14,6 @@ openspp_grievance_redress_mechanism:
   - "*"
 openspp_demo:
   - "*"
-odoo_celery:
-  - "*"
 helpdesk:
   - helpdesk_mgmt
 server-tools:
