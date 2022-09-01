@@ -6,3 +6,4 @@ boto3==1.24.2
 celery
 flower
 faker
+python-jose==3.3.0

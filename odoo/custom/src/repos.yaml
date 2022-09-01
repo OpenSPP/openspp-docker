@@ -51,7 +51,6 @@ openspp_registry:
   target: openspp 15.0
   merges:
     - openspp 15.0
-    - openspp refs/pull/16/head
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_program:
@@ -130,5 +129,19 @@ cybro_addons:
   target: cybro 15.0
   merges:
     - cybro 15.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
+server-auth:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    oca: https://github.com/OCA/server-auth.git
+  target: oca 15.0
+  merges:
+    - oca 15.0
+    - oca refs/pull/393/head
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head

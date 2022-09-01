@@ -166,7 +166,7 @@ services:
 
 networks:
   default:
-    internal: ${DOODBA_NETWORK_INTERNAL-true}
+    internal: ${DOODBA_NETWORK_INTERNAL-false}
   public:
 
 volumes:

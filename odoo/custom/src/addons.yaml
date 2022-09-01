@@ -22,3 +22,5 @@ cybro_addons:
   - odoo_dynamic_dashboard
 queue:
   - queue_job
+server-auth:
+  - auth_oidc
