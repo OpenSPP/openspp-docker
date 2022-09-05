@@ -24,3 +24,12 @@ queue:
   - queue_job
 server-auth:
   - auth_oidc
+rest-framework:
+  - base_rest
+  - base_rest_datamodel
+  - base_rest_pydantic
+  - extendable
+  - pydantic
+  - base_rest_demo
+connector:
+  - component

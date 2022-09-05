@@ -7,3 +7,18 @@ celery
 flower
 faker
 python-jose==3.3.0
+
+# REST API dependencies
+cachetools
+pydantic
+apispec>=4.0.0
+cerberus
+extendable
+extendable-pydantic
+jsondiff
+marshmallow
+marshmallow-objects>=2.0.0
+parse-accept-language
+pydantic
+pyquerystring
+typing-extensions
