@@ -18,8 +18,6 @@ helpdesk:
   - helpdesk_mgmt
 server-tools:
   - base_multi_image
-cybro_addons:
-  - odoo_dynamic_dashboard
 queue:
   - queue_job
 server-auth:
@@ -33,3 +31,7 @@ rest-framework:
   - base_rest_demo
 connector:
   - component
+smile-odoo:
+  - smile_audit
+openspp_odoo_external_dependencies:
+  - "*"
