@@ -22,11 +22,12 @@ openg2p_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openg2p: https://github.com/OpenG2P/openg2p-registry.git
-  target: openg2p rest-api
+  target: openg2p 15.0
   merges:
-    - openg2p rest-api
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
+    - openg2p 15.0
+#    - openg2p rest-api
+# Example of a merge of the PR with the number <PR>
+# - oca refs/pull/<PR>/head
 openg2p_program:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
