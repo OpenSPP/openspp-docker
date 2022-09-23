@@ -18,6 +18,8 @@ helpdesk:
   - helpdesk_mgmt
 server-tools:
   - base_multi_image
+server-ux:
+  - mass_editing
 queue:
   - queue_job
 server-auth:
@@ -35,3 +37,10 @@ smile-odoo:
   - smile_audit
 openspp_odoo_external_dependencies:
   - "*"
+web:
+  - web_advanced_search
+  - web_dialog_size
+  - web_responsive
+  - web_m2x_options
+  - web_m2x_options_manager
+  - web_widget_domain_editor_dialog
