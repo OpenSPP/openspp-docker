@@ -5,90 +5,47 @@ services:
     extends:
       file: common.yaml
       service: odoo
-    restart: unless-stopped
-    env_file:
-      - .docker/odoo.env
-      - .docker/db-access.env
+    ports:
+      - "8069:8069"
+    build:
+      args:
+        # To aggregate in development, use `setup-devel.yaml`
+        AGGREGATE: "false"
+        # Export these variables to own files created by odoo in your filesystem
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
+        # No need for this in development
+        PIP_INSTALL_ODOO: "false"
+        CLEAN: "false"
+        COMPILE: "false"
     environment:
-      DB_FILTER: "^prod"
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-prod}"
-      INITIAL_LANG: "en_US"
-    depends_on:
-      - db
-    networks:
-      default:
-      inverseproxy_shared:
-    labels:
-      doodba.domain.main: "demo.openspp.org"
-      traefik.enable: "true"
-      traefik.domain: "demo.openspp.org"
-      traefik.forbiddenCrawlers-0.frontend.headers.customResponseHeaders:
-        "X-Robots-Tag:noindex, nofollow"
-      traefik.forbiddenCrawlers-0.frontend.rule: Host:demo.openspp.org;Path:/{anything:.*}
-      traefik.longpolling-0.frontend.rule: Host:demo.openspp.org;Path:/longpolling/{anything:.*}
-      traefik.longpolling-0.port: 8072
-      traefik.http.middlewares.OpenSPP-15-0-prod-buffering.buffering.retryExpression:
-        IsNetworkError() && Attempts() < 5
-      traefik.http.middlewares.OpenSPP-15-0-prod-compress.compress: "true"
-      ? traefik.http.middlewares.OpenSPP-15-0-prod-forbid-crawlers.headers.customResponseHeaders.X-Robots-Tag
-      : "noindex, nofollow"
-      traefik.http.middlewares.OpenSPP-15-0-prod-forceSecure.headers.forceSTSHeader: "true"
-      traefik.http.middlewares.OpenSPP-15-0-prod-forceSecure.headers.sslRedirect: "true"
-      traefik.http.services.OpenSPP-15-0-prod-main.loadbalancer.server.port: 8069
-      traefik.http.services.OpenSPP-15-0-prod-longpolling.loadbalancer.server.port: 8072
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-0.rule:
-        Host(`demo.openspp.org`) && PathPrefix(`/longpolling/`)
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-0.service: OpenSPP-15-0-prod-longpolling
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-0.middlewares: OpenSPP-15-0-prod-forceSecure
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.rule:
-        Host(`demo.openspp.org`) && PathPrefix(`/longpolling/`)
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.service: OpenSPP-15-0-prod-longpolling
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.middlewares: OpenSPP-15-0-prod-forceSecure
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.tls: "true"
-      traefik.http.routers.OpenSPP-15-0-prod-longpolling-secure-0.tls.certResolver: letsencrypt
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-0.rule:
-        Host(`demo.openspp.org`) && (PathPrefix(`/`))
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-0.service: OpenSPP-15-0-prod-main
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-0.middlewares:
-        OpenSPP-15-0-prod-buffering, OpenSPP-15-0-prod-compress,
-        OpenSPP-15-0-prod-forbid-crawlers, OpenSPP-15-0-prod-forceSecure
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.rule:
-        Host(`demo.openspp.org`) && (PathPrefix(`/`))
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.service: OpenSPP-15-0-prod-main
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.middlewares:
-        OpenSPP-15-0-prod-buffering, OpenSPP-15-0-prod-compress,
-        OpenSPP-15-0-prod-forbid-crawlers, OpenSPP-15-0-prod-forceSecure
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.tls: "true"
-      traefik.http.routers.OpenSPP-15-0-prod-forbiddenCrawlers-secure-0.tls.certResolver: letsencrypt
-
-  db:
-    extends:
-      file: common.yaml
-      service: db
-    env_file:
-      - .docker/db-creation.env
-    restart: unless-stopped
-
-  backup:
-    extends:
-      file: common.yaml
-      service: backup
-    env_file:
-      - .docker/backup.env
-      - .docker/db-access.env
-    restart: unless-stopped
-    depends_on:
-      - db
+      LIST_DB: "prod"
+      DB_FILTER: "^prod"
+      PGDATABASE: &dbname prod
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONOPTIMIZE: ""
+      PYTHONPATH: /opt/odoo/custom/src/odoo
+      SMTP_PORT: "1025"
+      WDB_WEB_PORT: "15984"
+      # To avoid installing demo data export DOODBA_WITHOUT_DEMO=all
+      WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-false}"
+    volumes:
+      - ./odoo/custom:/opt/odoo/custom:ro,z
+      - ./odoo/auto:/opt/odoo/auto:rw,z
+    command:
+      - odoo
+      - --limit-memory-soft=0
+      - --limit-time-real-cron=9999999
+      - --limit-time-real=9999999
+      - --workers=0
+      - --dev=reload,qweb,werkzeug,xml
 
 networks:
   default:
-    driver_opts:
-      encrypted: 1
-
-  inverseproxy_shared:
-    external: true
+    internal: ${DOODBA_NETWORK_INTERNAL-false}
+  public:
 
 volumes:
-  backup_cache:
   filestore:
   db:
