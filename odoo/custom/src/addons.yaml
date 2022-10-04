@@ -4,6 +4,8 @@ openg2p_program:
   - "*"
 openspp_registry:
   - "*"
+odoo-cloud-platform:
+  - "*"
 openspp_program:
   - "*"
 openspp_communication:
