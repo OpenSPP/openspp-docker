@@ -32,6 +32,24 @@ services:
       POSTGRES_USER: *dbuser
       CONF_EXTRA: |
         work_mem = 512MB
+        log_min_duration_statement = 50ms
+        shared_preload_libraries = 'pg_stat_statements'
+        pg_stat_statements.max = 10000
+        pg_stat_statements.track = all
+
+        max_connections = 100
+        shared_buffers = 1GB
+        effective_cache_size = 3GB
+        maintenance_work_mem = 256MB
+        checkpoint_completion_target = 0.9
+        wal_buffers = 16MB
+        default_statistics_target = 100
+        random_page_cost = 1.1
+        effective_io_concurrency = 200
+        work_mem = 5242kB
+        min_wal_size = 1GB
+        max_wal_size = 4GB
+
     volumes:
       - db:/var/lib/postgresql/data:z
 

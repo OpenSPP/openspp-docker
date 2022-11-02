@@ -67,7 +67,13 @@ services:
     extends:
       file: common.yaml
       service: db
+    networks: *public
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
+      WAN_TLS: 0
+      WAN_AUTH_METHOD: md5
+      WAN_CONNECTION: host
       POSTGRES_DB: *dbname
       POSTGRES_PASSWORD: odoopassword
 

@@ -12,8 +12,9 @@
   target: odoo $ODOO_VERSION
   merges:
     - odoo $ODOO_VERSION
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
+#    - odoo refs/pull/80961/head
+# Exaqmple of a merge of the PR with the number <PR>
+# - oca refs/pull/<PR>/head
 openg2p_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -48,7 +49,7 @@ openspp_registry:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-registry.git
+    openspp: https://github.com/openspp/openspp-registry.git
   target: openspp 15.0
   merges:
     - openspp 15.0
@@ -61,7 +62,7 @@ openspp_program:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-program.git
+    openspp: https://github.com/openspp/openspp-program.git
   target: openspp 15.0
   merges:
     - openspp 15.0
@@ -74,7 +75,7 @@ openspp_communication:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-communication.git
+    openspp: https://github.com/openspp/openspp-communication.git
   target: openspp 15.0
   merges:
     - openspp 15.0
@@ -87,7 +88,7 @@ openspp_theme:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-theme.git
+    openspp: https://github.com/openspp/openspp-theme.git
   target: openspp 15.0
   merges:
     - openspp 15.0
@@ -100,7 +101,7 @@ openspp_grievance_redress_mechanism:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-grievance-redress-mechanism.git
+    openspp: https://github.com/openspp/openspp-grievance-redress-mechanism.git
   target: openspp 15.0
   merges:
     - openspp 15.0
@@ -113,7 +114,7 @@ openspp_demo:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-demo.git
+    openspp: https://github.com/openspp/openspp-demo.git
   target: openspp 15.0
   merges:
     - openspp 15.0
@@ -168,7 +169,7 @@ openspp_odoo_external_dependencies:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp-project/openspp-odoo-external-dependencies.git
+    openspp: https://github.com/openspp/openspp-odoo-external-dependencies.git
   target: openspp 15.0
   merges:
     - openspp 15.0
