@@ -40,8 +40,9 @@ openg2p_program:
   target: openg2p 15.0
   merges:
     - openg2p 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
+#    - openg2p improve-id-dedup-query
+# Example of a merge of the PR with the number <PR>
+# - oca refs/pull/<PR>/head
 openspp_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -173,5 +174,19 @@ openspp_odoo_external_dependencies:
   target: openspp 15.0
   merges:
     - openspp 15.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
+queue:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    oca: https://github.com/OCA/queue.git
+  target: oca 15.0
+  merges:
+    - oca 15.0
+    - oca refs/pull/476/head
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
