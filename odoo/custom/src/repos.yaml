@@ -7,7 +7,7 @@
     depth: $DEPTH_DEFAULT
   remotes:
     ocb: https://github.com/OCA/OCB.git
-    odoo: https://github.com/odoo/odoo.git
+    odoo: https://github.com/OpenSPP/odoo.git
     openupgrade: https://github.com/OCA/OpenUpgrade.git
   target: odoo $ODOO_VERSION
   merges:

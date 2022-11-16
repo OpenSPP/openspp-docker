@@ -96,7 +96,7 @@ services:
       - "127.0.0.1:15025:8025"
 
   wdb:
-    image: docker.io/kozea/wdb
+    image: docker.io/rednewlogic/wdb
     networks: *public
     ports:
       - "127.0.0.1:15984:1984"
