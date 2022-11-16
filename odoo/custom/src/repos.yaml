@@ -187,6 +187,5 @@ queue:
   target: oca 15.0
   merges:
     - oca 15.0
-    - oca refs/pull/476/head
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
