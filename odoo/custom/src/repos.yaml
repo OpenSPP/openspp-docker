@@ -9,9 +9,9 @@
     ocb: https://github.com/OCA/OCB.git
     odoo: https://github.com/OpenSPP/odoo.git
     openupgrade: https://github.com/OCA/OpenUpgrade.git
-  target: odoo $ODOO_VERSION
+  target: odoo bugfix/make-project-work-in-m1
   merges:
-    - odoo $ODOO_VERSION
+    - odoo bugfix/make-project-work-in-m1
 #    - odoo refs/pull/80961/head
 # Exaqmple of a merge of the PR with the number <PR>
 # - oca refs/pull/<PR>/head
