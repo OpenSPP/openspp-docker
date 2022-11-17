@@ -2,6 +2,7 @@ version: "2.4"
 
 services:
   odoo_proxy:
+    platform: linux/amd64
     image: ghcr.io/tecnativa/docker-whitelist:latest
     depends_on:
       - odoo
@@ -16,6 +17,7 @@ services:
       TARGET: odoo
 
   odoo:
+    platform: linux/amd64
     extends:
       file: common.yaml
       service: odoo
@@ -64,6 +66,7 @@ services:
       - --dev=reload,qweb,werkzeug,xml
 
   db:
+    platform: linux/amd64
     extends:
       file: common.yaml
       service: db
@@ -88,6 +91,7 @@ services:
       - db
 
   smtp:
+    platform: linux/amd64
     extends:
       file: common.yaml
       service: smtpfake
@@ -96,7 +100,9 @@ services:
       - "127.0.0.1:15025:8025"
 
   wdb:
-    image: docker.io/rednewlogic/wdb
+    build:
+      context: .
+      dockerfile: wdb.Dockerfile
     networks: *public
     ports:
       - "127.0.0.1:15984:1984"
@@ -105,6 +111,7 @@ services:
 
   # Whitelist outgoing traffic for tests, reports, etc.
   proxy_cdnjs_cloudflare_com:
+    platform: linux/amd64
     image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
@@ -116,6 +123,7 @@ services:
       PRE_RESOLVE: 1
 
   proxy_fonts_googleapis_com:
+    platform: linux/amd64
     image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
@@ -127,6 +135,7 @@ services:
       PRE_RESOLVE: 1
 
   proxy_fonts_gstatic_com:
+    platform: linux/amd64
     image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
@@ -138,6 +147,7 @@ services:
       PRE_RESOLVE: 1
 
   proxy_www_google_com:
+    platform: linux/amd64
     image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
@@ -149,6 +159,7 @@ services:
       PRE_RESOLVE: 1
 
   proxy_www_googleapis_com:
+    platform: linux/amd64
     image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
@@ -160,6 +171,7 @@ services:
       PRE_RESOLVE: 1
 
   proxy_www_gravatar_com:
+    platform: linux/amd64
     image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
