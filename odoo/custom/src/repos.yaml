@@ -8,9 +8,11 @@
   remotes:
     ocb: https://github.com/OCA/OCB.git
     odoo: https://github.com/odoo/odoo.git
+    opensppodoo: https://github.com/OpenSPP/odoo.git
     openupgrade: https://github.com/OCA/OpenUpgrade.git
-  target: odoo $ODOO_VERSION
+  target: opensppodoo bugfix/make-project-work-in-m1
   merges:
+    - opensppodoo bugfix/make-project-work-in-m1
     - odoo $ODOO_VERSION
 #    - odoo refs/pull/80961/head
 # Exaqmple of a merge of the PR with the number <PR>
