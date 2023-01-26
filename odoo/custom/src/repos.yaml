@@ -77,7 +77,32 @@ openspp_program:
     - openspp rc/15.0.1.0.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-
+openspp_communication:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/openspp/openspp-communication.git
+  target: openspp rc/15.0.1.0.0
+  merges:
+    - openspp rc/15.0.1.0.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
+openspp_grievance_redress_mechanism:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/openspp/openspp-grievance-redress-mechanism.git
+  target: openspp rc/15.0.1.0.0
+  merges:
+    - openspp rc/15.0.1.0.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openspp_dms:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -91,7 +116,19 @@ openspp_dms:
     - openspp rc/15.0.1.0.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-
+openspp_demo:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/openspp/openspp-demo.git
+  target: openspp rc/15.0.1.0.0
+  merges:
+    - openspp rc/15.0.1.0.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openspp_theme:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
