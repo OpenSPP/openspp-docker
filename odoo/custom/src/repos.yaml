@@ -11,10 +11,9 @@
     openupgrade: https://github.com/OCA/OpenUpgrade.git
   target: odoo $ODOO_VERSION
   merges:
-    - odoo $ODOO_VERSION
-#    - odoo refs/pull/80961/head
-# Exaqmple of a merge of the PR with the number <PR>
-# - oca refs/pull/<PR>/head
+    - odoo c98839a4b360cda7f73d6d767d494d026a2d1db0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openg2p_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -23,12 +22,11 @@ openg2p_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openg2p: https://github.com/OpenG2P/openg2p-registry.git
-  target: openg2p 15.0
+  target: openg2p 15-0-1.0.0-rc1
   merges:
-    - openg2p 15.0
-#    - openg2p rest-api
-# Example of a merge of the PR with the number <PR>
-# - oca refs/pull/<PR>/head
+    - openg2p 15-0-1.0.0-rc1
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openg2p_program:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -37,12 +35,11 @@ openg2p_program:
     depth: $DEPTH_DEFAULT
   remotes:
     openg2p: https://github.com/OpenG2P/openg2p-program.git
-  target: openg2p 15.0
+  target: openg2p 15-0-1.0.0-rc1
   merges:
-    - openg2p 15.0
-#    - openg2p improve-id-dedup-query
-# Example of a merge of the PR with the number <PR>
-# - oca refs/pull/<PR>/head
+    - openg2p 15-0-1.0.0-rc1
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openspp_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -51,11 +48,22 @@ openspp_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-registry.git
-  target: openspp 15.0
+  target: openspp rc/15.0.1.0.0
   merges:
-    - openspp 15.0
+    - openspp rc/15.0.1.0.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
+odoo-cloud-platform:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    redis: https://github.com/camptocamp/odoo-cloud-platform.git
+  target: redis 15.0
+  merges:
+    - redis 1731912ba4c1d48b61d092beacd0105fb162a0ef
 openspp_program:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -64,24 +72,26 @@ openspp_program:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-program.git
-  target: openspp 15.0
+  target: openspp rc/15.0.1.0.0
   merges:
-    - openspp 15.0
+    - openspp rc/15.0.1.0.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-openspp_communication:
+
+openspp_dms:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp/openspp-communication.git
-  target: openspp 15.0
+    openspp: https://github.com/OpenSPP/openspp-dms.git
+  target: openspp rc/15.0.1.0.0
   merges:
-    - openspp 15.0
+    - openspp rc/15.0.1.0.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
+
 openspp_theme:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -90,35 +100,9 @@ openspp_theme:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-theme.git
-  target: openspp 15.0
+  target: openspp rc/15.0.1.0.0
   merges:
-    - openspp 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_grievance_redress_mechanism:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-grievance-redress-mechanism.git
-  target: openspp 15.0
-  merges:
-    - openspp 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_demo:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-demo.git
-  target: openspp 15.0
-  merges:
-    - openspp 15.0
+    - openspp rc/15.0.1.0.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 server-auth:
@@ -131,8 +115,7 @@ server-auth:
     oca: https://github.com/OCA/server-auth.git
   target: oca 15.0
   merges:
-    - oca 15.0
-    - oca refs/pull/393/head
+    - oca 0d6f847d3f13570a44c435634f289e2f5ca1a15c
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 rest-framework:
@@ -146,7 +129,7 @@ rest-framework:
     newlogic: https://github.com/newlogic/oca-rest-framework.git
   target: oca 15.0
   merges:
-    - oca 15.0
+    - oca 780fb402de43f571206f7c302b14f2e21bf52468
     - newlogic fix-schema-alias
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
@@ -160,7 +143,7 @@ smile-odoo:
     smile: https://github.com/Smile-SA/odoo_addons.git
   target: smile 15.0
   merges:
-    - smile 15.0
+    - smile 2ec3aafa8b6d7eb81ce987778464d8acd5464219
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_odoo_external_dependencies:
@@ -171,9 +154,9 @@ openspp_odoo_external_dependencies:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-odoo-external-dependencies.git
-  target: openspp 15.0
+  target: openspp rc/15.0.1.0.0
   merges:
-    - openspp 15.0
+    - openspp rc/15.0.1.0.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 queue:
@@ -186,6 +169,6 @@ queue:
     oca: https://github.com/OCA/queue.git
   target: oca 15.0
   merges:
-    - oca 15.0
+    - oca bab89cfc916308eb17285fdb241ec7865c6980b6
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
