@@ -124,9 +124,9 @@ openspp_demo:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-demo.git
-  target: openspp rc/15.0.1.0.0
+  target: openspp 15.0
   merges:
-    - openspp rc/15.0.1.0.0
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_theme:
@@ -207,5 +207,18 @@ queue:
   target: oca 15.0
   merges:
     - oca bab89cfc916308eb17285fdb241ec7865c6980b6
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
+dms:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    oca: https://github.com/OCA/dms.git
+  target: oca 15.0
+  merges:
+    - oca 07e0fef79d6985d275875f507834c6ea6ed0a05f
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head

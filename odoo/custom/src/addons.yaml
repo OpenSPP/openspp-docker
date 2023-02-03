@@ -44,3 +44,10 @@ web:
   - web_m2x_options
   - web_m2x_options_manager
   - web_widget_domain_editor_dialog
+  - web_domain_field
+  - web_drop_target
+dms:
+  - dms
+  - dms_field
+social:
+  - "*"
