@@ -48,9 +48,9 @@ openspp_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-registry.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 odoo-cloud-platform:
@@ -72,9 +72,9 @@ openspp_program:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-program.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     - openspp refs/pull/39/head
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
@@ -86,9 +86,9 @@ openspp_communication:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-communication.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_grievance_redress_mechanism:
@@ -99,9 +99,9 @@ openspp_grievance_redress_mechanism:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-grievance-redress-mechanism.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_dms:
@@ -112,9 +112,9 @@ openspp_dms:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/OpenSPP/openspp-dms.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_demo:
@@ -125,9 +125,9 @@ openspp_demo:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-demo.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_theme:
@@ -138,9 +138,9 @@ openspp_theme:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-theme.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 server-auth:
@@ -192,9 +192,9 @@ openspp_odoo_external_dependencies:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-odoo-external-dependencies.git
-  target: openspp rc/15.0.1.0.1
+  target: openspp rc/15.0.1.0.2
   merges:
-    - openspp rc/15.0.1.0.1
+    - openspp rc/15.0.1.0.2
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 queue:
