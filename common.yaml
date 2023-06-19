@@ -3,6 +3,7 @@ version: "2.4"
 services:
   odoo:
     image: openspp/openspp:15.0
+    platform: linux/amd64
     build:
       context: ./odoo
       args:
@@ -26,6 +27,7 @@ services:
 
   db:
     image: ghcr.io/tecnativa/postgres-autoconf:13-alpine
+    platform: linux/amd64
     shm_size: 4gb
     environment:
       POSTGRES_DB: *dbname
@@ -55,9 +57,11 @@ services:
 
   smtpfake:
     image: docker.io/mailhog/mailhog
+    platform: linux/amd64
 
   backup:
     image: ghcr.io/tecnativa/docker-duplicity-postgres-s3:latest
+    platform: linux/amd64
     hostname: backup
     domainname: demo.openspp.org
     init: true

@@ -3,6 +3,7 @@ version: "2.4"
 services:
   odoo_proxy:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    platform: linux/amd64
     depends_on:
       - odoo
     networks: &public
@@ -79,6 +80,7 @@ services:
 
   pgweb:
     image: docker.io/sosedoff/pgweb
+    platform: linux/amd64
     networks: *public
     ports:
       - "127.0.0.1:15081:8081"
@@ -97,6 +99,7 @@ services:
 
   wdb:
     image: docker.io/kozea/wdb
+    platform: linux/amd64
     networks: *public
     ports:
       - "127.0.0.1:15984:1984"
@@ -106,6 +109,7 @@ services:
   # Whitelist outgoing traffic for tests, reports, etc.
   proxy_cdnjs_cloudflare_com:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    platform: linux/amd64
     networks:
       default:
         aliases:
@@ -117,6 +121,7 @@ services:
 
   proxy_fonts_googleapis_com:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    platform: linux/amd64
     networks:
       default:
         aliases:
@@ -128,6 +133,7 @@ services:
 
   proxy_fonts_gstatic_com:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    platform: linux/amd64
     networks:
       default:
         aliases:
@@ -139,6 +145,7 @@ services:
 
   proxy_www_google_com:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    platform: linux/amd64
     networks:
       default:
         aliases:
@@ -150,6 +157,7 @@ services:
 
   proxy_www_googleapis_com:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    platform: linux/amd64
     networks:
       default:
         aliases:
@@ -161,6 +169,7 @@ services:
 
   proxy_www_gravatar_com:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    platform: linux/amd64
     networks:
       default:
         aliases:
