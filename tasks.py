@@ -806,12 +806,12 @@ def resetdb(
             warn=True,
             pty=True,
         )
-        no_demo_option = ""
+        additional_option = ""
         if nodemo:
-            no_demo_option = "--no-demo"
+            additional_option = "--no-demo"
 
         c.run(
-            f"{_run} click-odoo-initdb -n {dbname} -m {modules} {no_demo_option}",
+            f"{_run} click-odoo-initdb -n {dbname} -m {modules} {additional_option}",
             env=UID_ENV,
             pty=True,
         )
