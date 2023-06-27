@@ -102,6 +102,12 @@ Initialize a new empty database with:
 invoke resetdb
 ```
 
+Initialize a new empty database without demo data:
+
+```bash
+invoke resetdb --nodemo
+```
+
 Start Odoo with:
 
 ```bash

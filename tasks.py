@@ -784,6 +784,7 @@ def resetdb(
     dbname="devel",
     populate=True,
     dependencies=False,
+    nodemo=False,
 ):
     """Reset the specified database with the specified modules.
 
@@ -805,8 +806,12 @@ def resetdb(
             warn=True,
             pty=True,
         )
+        no_demo_option = ""
+        if nodemo:
+            no_demo_option = "--no-demo"
+
         c.run(
-            f"{_run} click-odoo-initdb -n {dbname} -m {modules}",
+            f"{_run} click-odoo-initdb -n {dbname} -m {modules} {no_demo_option}",
             env=UID_ENV,
             pty=True,
         )
