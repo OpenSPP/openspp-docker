@@ -813,7 +813,6 @@ def resetdb(
             demo_option = "--no-demo"
 
         c.run(
-            # f"{_run} click-odoo-initdb -n {dbname} -m {modules} {additional_option}",
             f"{_run} click-odoo-initdb -n {dbname} -m {modules} {demo_option}",
             env=UID_ENV,
             pty=True,
