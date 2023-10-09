@@ -96,10 +96,16 @@ invoke img-build --pull
 invoke git-aggregate
 ```
 
-Initialize a new empty database with:
+Initialize a new empty database without demo data:
 
 ```bash
 invoke resetdb
+```
+
+Initialize a new empty database with demo data:
+
+```bash
+invoke resetdb --demo
 ```
 
 Start Odoo with:
