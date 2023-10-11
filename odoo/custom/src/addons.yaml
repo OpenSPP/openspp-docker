@@ -51,3 +51,5 @@ dms:
   - dms_field
 social:
   - "*"
+openspp_base:
+  - "*"
