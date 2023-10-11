@@ -48,9 +48,9 @@ openspp_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-registry.git
-  target: openspp 15.0
+  target: openspp 15.1.1
   merges:
-    - openspp 15.0
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 odoo-cloud-platform:
@@ -72,9 +72,9 @@ openspp_program:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-program.git
-  target: openspp 15.0
+  target: openspp 15.1.1
   merges:
-    - openspp 15.0
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_communication:
@@ -124,9 +124,9 @@ openspp_demo:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-demo.git
-  target: openspp 15.0
+  target: openspp 15.1.1
   merges:
-    - openspp 15.0
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_theme:
