@@ -48,9 +48,9 @@ openspp_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-registry.git
-  target: openspp 15.0
+  target: openspp 15.1.1
   merges:
-    - openspp 15.0
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 odoo-cloud-platform:
@@ -72,9 +72,9 @@ openspp_program:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-program.git
-  target: openspp 15.0
+  target: openspp 15.1.1
   merges:
-    - openspp 15.0
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_communication:
@@ -124,22 +124,9 @@ openspp_demo:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-demo.git
-  target: openspp 15.0
+  target: openspp 15.1.1
   merges:
-    - openspp 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_theme:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-theme.git
-  target: openspp 15.0
-  merges:
-    - openspp 15.0
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 server-auth:
@@ -222,3 +209,19 @@ dms:
     - oca 07e0fef79d6985d275875f507834c6ea6ed0a05f
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
+openspp_base:
+  defaults:
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/OpenSPP/openspp-base.git
+  target: openspp 15.1.1
+  merges:
+    - openspp 15.1.1
+openspp_scripts:
+  defaults:
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/openspp/openspp-scripts.git
+  target: openspp main
+  merges:
+    - openspp main
