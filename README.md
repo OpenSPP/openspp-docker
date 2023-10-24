@@ -214,12 +214,6 @@ We ship it preconfigured in the [development][] environment. Just start it and o
 It includes pluggable `smtp` and `backup` services, that will be or not generated
 depending on your answers when copying the template.
 
-#### Prebuilding images
-
-We recommend you to use [Gitlab](https://gitlab.com/) to host your subprojects and
-prebuild images there, so the same codebase you test is the same you deploy to
-production.
-
 #### Adding secrets
 
 To boot this environment, these files must be present:
