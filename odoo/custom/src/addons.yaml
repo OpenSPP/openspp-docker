@@ -22,6 +22,7 @@ queue:
   - queue_job
 server-auth:
   - auth_oidc
+  - auth_api_key
 rest-framework:
   - base_rest
   - base_rest_datamodel
