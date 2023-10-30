@@ -98,26 +98,24 @@ repos:
         files: /__init__\.py$
         additional_dependencies: ["flake8-bugbear==20.1.4"]
   - repo: https://github.com/pycqa/pylint
-    rev: v3.0.1
+    rev: v3.0.2
     hooks:
       - id: pylint
         name: pylint with optional checks
         args:
-          - --valid_odoo_versions=15.0
           - --rcfile=.pylintrc
           - --exit-zero
         verbose: true
         additional_dependencies:
           - isort==5.12.0
-          - pylint-odoo==5.0.5
+          - pylint-odoo==9.0.0
       - id: pylint
         name: pylint with mandatory checks
         args:
-          - --valid_odoo_versions=15.0
           - --rcfile=.pylintrc-mandatory
         additional_dependencies:
           - isort==5.12.0
-          - pylint-odoo==5.0.5
+          - pylint-odoo==9.0.0
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v8.52.0
     hooks:
