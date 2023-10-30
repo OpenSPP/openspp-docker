@@ -79,6 +79,9 @@ File used: `devel.yaml`. We recommend using [VSCode](https://code.visualstudio.c
 develop, and some [special features](#visual-studio-code-integration) for it are
 supplied.
 
+All requirements needed to proceed with the steps below can be found in `requirements.txt`.
+The recommended Python version is 3.10.x.
+
 Set up a valid VSCode development environment with:
 
 ```sh
