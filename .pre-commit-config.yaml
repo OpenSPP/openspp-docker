@@ -22,7 +22,7 @@ repos:
         language: fail
         files: "\\.rej$"
   - repo: https://github.com/oca/maintainer-tools
-    rev: b9c963d
+    rev: 568cacd1d6eef453063a524a5ce63dcd49c7259b
     hooks:
       # update the NOT INSTALLABLE ADDONS section above
       - id: oca-update-pre-commit-excluded-addons
@@ -30,7 +30,7 @@ repos:
           - --addons-dir
           - odoo/custom/src/private
   - repo: https://github.com/myint/autoflake
-    rev: v1.4
+    rev: v2.2.1
     hooks:
       - id: autoflake
         args:
@@ -41,25 +41,25 @@ repos:
           - --remove-duplicate-keys
           - --remove-unused-variables
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 23.10.1
     hooks:
       - id: black
         additional_dependencies: ["click<8.1.0"]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.2
+    rev: v3.15.0
     hooks:
       - id: pyupgrade
         args:
           - --keep-percent-format
   - repo: https://github.com/timothycrosley/isort
-    rev: 5.5.1
+    rev: 5.12.0
     hooks:
       - id: isort
         name: isort except __init__.py
         args: [--settings, .]
         exclude: /__init__\.py$
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.1.2
+    rev: v3.0.3
     hooks:
       - id: prettier
         name: prettier + plugin-xml
@@ -70,7 +70,7 @@ repos:
         args:
           - --plugin=@prettier/plugin-xml
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -86,7 +86,7 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
   - repo: https://github.com/PyCQA/flake8
-    rev: 3.8.3
+    rev: 6.1.0
     hooks:
       - id: flake8
         name: flake8 except __init__.py
@@ -98,7 +98,7 @@ repos:
         files: /__init__\.py$
         additional_dependencies: ["flake8-bugbear==20.1.4"]
   - repo: https://github.com/pycqa/pylint
-    rev: v2.11.1
+    rev: v3.0.1
     hooks:
       - id: pylint
         name: pylint with optional checks
@@ -108,7 +108,7 @@ repos:
           - --exit-zero
         verbose: true
         additional_dependencies:
-          - isort==4.3.21
+          - isort==5.12.0
           - pylint-odoo==5.0.5
       - id: pylint
         name: pylint with mandatory checks
@@ -116,10 +116,10 @@ repos:
           - --valid_odoo_versions=15.0
           - --rcfile=.pylintrc-mandatory
         additional_dependencies:
-          - isort==4.3.21
+          - isort==5.12.0
           - pylint-odoo==5.0.5
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v7.8.1
+    rev: v8.52.0
     hooks:
       - id: eslint
         verbose: true
