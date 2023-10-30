@@ -420,6 +420,17 @@ def develop(c):
         c.run("pre-commit install")
 
 
+@task
+def demo(c):
+    """Combine devel.yaml and demo.yaml to docker-compose.yaml"""
+    with c.cd(str(PROJECT_ROOT)):
+        c.run("unlink docker-compose.yml")
+        c.run(
+            "yq eval-all '. as $item ireduce ({}; . * $item)' "
+            "demo.yaml devel.yaml >> docker-compose.yml"
+        )
+
+
 @task(develop)
 def git_aggregate(c):
     """Download odoo & addons git code.
