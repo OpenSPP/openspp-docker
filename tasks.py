@@ -415,6 +415,10 @@ def develop(c):
     addons.chmod(0o777)
     with c.cd(str(PROJECT_ROOT)):
         c.run("git init")
+        try:
+            c.run("unlink docker-compose.yml")
+        except Exception as e:
+            _logger.error(e)
         c.run("ln -sf devel.yaml docker-compose.yml")
         write_code_workspace_file(c)
         c.run("pre-commit install")
