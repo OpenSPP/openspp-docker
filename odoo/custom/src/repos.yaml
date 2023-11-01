@@ -126,7 +126,7 @@ openspp_demo:
     openspp: https://github.com/openspp/openspp-demo.git
   target: openspp 15.1.1
   merges:
-    - openspp abf6f3c7ba8f8f0c7d19973c1709f65d3180dcf9
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 server-auth:
