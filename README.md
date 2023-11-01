@@ -79,6 +79,11 @@ File used: `devel.yaml`. We recommend using [VSCode](https://code.visualstudio.c
 develop, and some [special features](#visual-studio-code-integration) for it are
 supplied.
 
+All requirements needed to proceed with the steps below can be found in
+`requirements.txt`. The recommended Python version is 3.10.x. Note that
+[Demo](#demo-setup) setup requires that
+[yq is installed](https://github.com/mikefarah/yq/#install).
+
 Set up a valid VSCode development environment with:
 
 ```sh
@@ -208,6 +213,19 @@ inspect a Postgres database.
 
 We ship it preconfigured in the [development][] environment. Just start it and open
 `http://localhost:${ODOO_MAJOR}081` to use it.
+
+### Demo setup
+
+The demo setup is using [Metabase](https://www.metabase.com/) for reporting and
+analytics. To use this setup, add the invoke keyword `demo` right after the `develop`
+command. Note that the `demo` keyword requires that
+[yq is installed](https://github.com/mikefarah/yq/#install) on your system.
+
+A complete command looks like this:
+
+```sh
+invoke develop demo img-pull img-build git-aggregate resetdb start
+```
 
 ### Production
 

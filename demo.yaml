@@ -1,0 +1,22 @@
+version: "2.4"
+
+services:
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      MB_DB_TYPE: h2
+      MB_DB_FILE: /data/metabase.db
+    volumes:
+      - metabase-data:/data
+
+networks:
+  default:
+    internal: ${DOODBA_NETWORK_INTERNAL-false}
+  public:
+
+volumes:
+  metabase-data:
