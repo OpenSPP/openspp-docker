@@ -4,6 +4,8 @@ openg2p_program:
   - "*"
 openspp_registry:
   - "*"
+openspp_api:
+  - "*"
 openspp_program:
   - "*"
 openspp_communication:
