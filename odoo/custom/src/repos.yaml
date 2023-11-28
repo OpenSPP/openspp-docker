@@ -63,7 +63,7 @@ openspp_api:
     openspp: https://github.com/openspp/openspp-api.git
   target: openspp 15.1.1
   merges:
-    - openspp spp_dci_api_server
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 odoo-cloud-platform:
@@ -229,7 +229,7 @@ openspp_base:
     openspp: https://github.com/OpenSPP/openspp-base.git
   target: openspp 15.1.1
   merges:
-    - openspp module_spp_audit_log
+    - openspp 15.1.1
 openspp_scripts:
   defaults:
     depth: $DEPTH_DEFAULT
