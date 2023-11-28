@@ -4,7 +4,7 @@
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
     # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
+    depth: $DEPTH_MERGE
   remotes:
     ocb: https://github.com/OCA/OCB.git
     odoo: https://github.com/odoo/odoo.git
@@ -63,7 +63,7 @@ openspp_api:
     openspp: https://github.com/openspp/openspp-api.git
   target: openspp 15.1.1
   merges:
-    - openspp 15.1.1
+    - openspp 15.0
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 odoo-cloud-platform:
@@ -71,7 +71,7 @@ odoo-cloud-platform:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
     # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
+    depth: $DEPTH_MERGE
   remotes:
     redis: https://github.com/camptocamp/odoo-cloud-platform.git
   target: redis 15.0
@@ -147,7 +147,7 @@ server-auth:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
     # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
+    depth: $DEPTH_MERGE
   remotes:
     oca: https://github.com/OCA/server-auth.git
   target: oca 15.0
@@ -160,7 +160,7 @@ rest-framework:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
     # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
+    depth: $DEPTH_MERGE
   remotes:
     oca: https://github.com/OCA/rest-framework.git
     newlogic: https://github.com/newlogic/oca-rest-framework.git
@@ -201,7 +201,7 @@ queue:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
     # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
+    depth: $DEPTH_MERGE
   remotes:
     oca: https://github.com/OCA/queue.git
   target: oca 15.0
@@ -214,7 +214,7 @@ dms:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
     # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
+    depth: $DEPTH_MERGE
   remotes:
     oca: https://github.com/OCA/dms.git
   target: oca 15.0
