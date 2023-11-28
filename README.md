@@ -141,6 +141,32 @@ invoke --list
 To browse Odoo go to `http://localhost:${ODOO_MAJOR}069` (i.e. for Odoo 11.0 this would
 be `http://localhost:11069`).
 
+#### Troubleshooting setup problems
+
+During the setup, you might encounter some problems. Here are some common ones and how
+to solve them.
+
+##### Failure during `invoke git-aggregate`
+
+When a failure like the one below occurrs during `git-aggregate`, it could be due to an
+internal conflict in git.
+
+```python
+raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command '['gitaggregate', '--expand-env', '--config', '/opt/odoo/custom/src/repos.yaml', '--log-level', 'INFO', '--jobs', '8', 'aggregate']' returned non-zero exit status 1.
+```
+
+The easiest way is to start over by removing the `src` folder and resetting the
+`openspp-docker` repository.
+
+```bash
+rm -rf odoo/custom/src
+git reset --hard
+```
+
+⚠️ Check your branch before resetting the repository. You might lose some work. Stash
+your changes if needed.
+
 #### MailHog
 
 We use [MailHog](https://github.com/mailhog/MailHog) to provide a fake SMTP server that
