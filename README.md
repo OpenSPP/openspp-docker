@@ -167,6 +167,15 @@ git reset --hard
 ⚠️ Check your branch before resetting the repository. You might lose some work. Stash
 your changes if needed.
 
+Complete flow:
+
+```bash
+git stash
+rm -rf odoo/custom/src
+git reset --hard
+git stash pop
+```
+
 #### MailHog
 
 We use [MailHog](https://github.com/mailhog/MailHog) to provide a fake SMTP server that
