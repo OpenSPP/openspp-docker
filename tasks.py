@@ -52,7 +52,7 @@ _logger = getLogger(__name__)
 def _override_docker_command(service, command, file, orig_file=None):
     # Read config from main file
     if orig_file:
-        with open(orig_file, "r") as fd:
+        with open(orig_file) as fd:
             orig_docker_config = yaml.safe_load(fd.read())
             docker_compose_file_version = orig_docker_config.get("version")
     else:
@@ -67,7 +67,7 @@ def _override_docker_command(service, command, file, orig_file=None):
 
 
 def _remove_auto_reload(file, orig_file):
-    with open(orig_file, "r") as fd:
+    with open(orig_file) as fd:
         orig_docker_config = yaml.safe_load(fd.read())
     odoo_command = orig_docker_config["services"]["odoo"]["command"]
     new_odoo_command = []
@@ -417,8 +417,8 @@ def develop(c):
         c.run("git init")
         try:
             c.run("unlink docker-compose.yml")
-        except Exception as e:
-            _logger.error(e)
+        except Exception:
+            _logger.warning("docker-compose.yml is not existing.")
         c.run("ln -sf devel.yaml docker-compose.yml")
         write_code_workspace_file(c)
         c.run("pre-commit install")
