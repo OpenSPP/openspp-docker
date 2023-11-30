@@ -30,4 +30,3 @@ jsonschema
 jwt
 PyLD
 swagger_spec_validator
-cryptography<38
