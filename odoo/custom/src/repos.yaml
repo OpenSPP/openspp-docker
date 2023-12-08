@@ -48,9 +48,9 @@ openspp_api:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/OpenSPP/openspp-api.git
-  target: openspp openspp 15.1.1
+  target: openspp 15.1.1
   merges:
-    - openspp openspp 15.1.1
+    - openspp 15.1.1
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_registry:
