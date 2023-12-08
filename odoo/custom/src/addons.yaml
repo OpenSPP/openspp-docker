@@ -6,6 +6,8 @@ openspp_registry:
   - "*"
 openspp_program:
   - "*"
+openspp_api:
+  - "*"
 openspp_communication:
   - "*"
 openspp_grievance_redress_mechanism:
@@ -23,19 +25,14 @@ queue:
 server-auth:
   - auth_oidc
   - auth_api_key
-rest-framework:
-  - base_rest
-  - base_rest_datamodel
-  - base_rest_pydantic
-  - extendable
-  - pydantic
-  - base_rest_demo
 connector:
   - component
 smile-odoo:
   - smile_audit
 openspp_odoo_external_dependencies:
   - "*"
+server-backend:
+  - base_user_role
 web:
   - web_advanced_search
   - web_dialog_size
