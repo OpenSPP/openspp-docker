@@ -23,3 +23,10 @@ pydantic
 pyquerystring
 typing-extensions
 schwifty
+
+# OpenSPP-API dependencies
+bravado_core
+jsonschema
+pyjwt>=2.4.0
+PyLD
+swagger_spec_validator
