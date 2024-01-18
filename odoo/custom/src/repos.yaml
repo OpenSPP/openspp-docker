@@ -40,6 +40,19 @@ openg2p_program:
     - openg2p 15.0-1.0-develop
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
+openspp_api:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    openspp: https://github.com/OpenSPP/openspp-api.git
+  target: openspp 15.1.1
+  merges:
+    - openspp 15.1.1
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openspp_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -142,21 +155,6 @@ server-auth:
     - oca 0d6f847d3f13570a44c435634f289e2f5ca1a15c
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-rest-framework:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    oca: https://github.com/OCA/rest-framework.git
-    newlogic: https://github.com/newlogic/oca-rest-framework.git
-  target: oca 15.0
-  merges:
-    - oca 780fb402de43f571206f7c302b14f2e21bf52468
-    - newlogic fix-schema-alias
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
 smile-odoo:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -217,6 +215,19 @@ openspp_base:
   target: openspp 15.1.1
   merges:
     - openspp 15.1.1
+server-backend:
+  defaults:
+    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+    # for a sane value of 100 commits)
+    depth: $DEPTH_DEFAULT
+  remotes:
+    oca: https://github.com/OCA/server-backend.git
+  target: oca 15.0
+  merges:
+    - oca 15.0
+    # Example of a merge of the PR with the number <PR>
+    # - oca refs/pull/<PR>/head
 openspp_scripts:
   defaults:
     depth: $DEPTH_DEFAULT
