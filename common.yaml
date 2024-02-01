@@ -2,75 +2,36 @@ version: "2.4"
 
 services:
   odoo:
-    image: openspp/openspp:15.0
     platform: linux/amd64
     build:
       context: ./odoo
       args:
-        ODOO_VERSION: "15.0"
+        DB_VERSION: "15"
+        ODOO_VERSION: "17.0"
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
     environment:
       EMAIL_FROM: "contact@openspp.org"
       PGDATABASE: &dbname prod
       PGUSER: &dbuser "odoo"
-      PROXY_MODE: "true"
-      LIST_DB: "false"
+      PROXY_MODE: "false"
+      LIST_DB: "true"
     tty: true
     volumes:
       - filestore:/var/lib/odoo:z
-    labels:
-      traefik.backend.buffering.retryExpression: IsNetworkError() && Attempts() < 5
-      traefik.docker.network: "inverseproxy_shared"
-      traefik.frontend.passHostHeader: "true"
-      traefik.port: "8069"
 
   db:
-    image: ghcr.io/tecnativa/postgres-autoconf:13-alpine
     platform: linux/amd64
+    image: ghcr.io/openspp/postgis-autoconf:15-alpine
     shm_size: 4gb
     environment:
       POSTGRES_DB: *dbname
       POSTGRES_USER: *dbuser
       CONF_EXTRA: |
         work_mem = 512MB
-        log_min_duration_statement = 50ms
-        shared_preload_libraries = 'pg_stat_statements'
-        pg_stat_statements.max = 10000
-        pg_stat_statements.track = all
-
-        max_connections = 100
-        shared_buffers = 1GB
-        effective_cache_size = 3GB
-        maintenance_work_mem = 256MB
-        checkpoint_completion_target = 0.9
-        wal_buffers = 16MB
-        default_statistics_target = 100
-        random_page_cost = 1.1
-        effective_io_concurrency = 200
-        work_mem = 5242kB
-        min_wal_size = 1GB
-        max_wal_size = 4GB
-
     volumes:
       - db:/var/lib/postgresql/data:z
 
   smtpfake:
+    platform: linux/amd64
     image: docker.io/mailhog/mailhog
-    platform: linux/amd64
-
-  backup:
-    image: ghcr.io/tecnativa/docker-duplicity-postgres-s3:latest
-    platform: linux/amd64
-    hostname: backup
-    domainname: demo.openspp.org
-    init: true
-    environment:
-      DBS_TO_INCLUDE: "^prod"
-      DST: "boto3+s3://example_bucket"
-      PGDATABASE: *dbname
-      PGUSER: *dbuser
-      TZ: "UTC"
-    volumes:
-      - backup_cache:/root:z
-      - filestore:/mnt/backup/src/odoo:z

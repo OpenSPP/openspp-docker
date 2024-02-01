@@ -11,13 +11,13 @@ version: "2.4"
 
 services:
   odoo:
-    image: openspp/openspp:15.0
+    privileged: true
     build:
       context: ./odoo
       args:
         AGGREGATE: "false"
         DEPTH_DEFAULT: 100
-        ODOO_VERSION: "15.0"
+        ODOO_VERSION: "17.0"
         PYTHONOPTIMIZE: ""
         PIP_INSTALL_ODOO: "false"
         CLEAN: "false"
@@ -27,7 +27,7 @@ services:
     networks:
       - public
     volumes:
-      - ./odoo/custom/src:/opt/odoo/custom/src:rw,z
+      - ./odoo/custom/src:/opt/odoo/custom/src:z
     environment:
       DEPTH_DEFAULT: 100
       # XXX Export these variables before running setup to own the files

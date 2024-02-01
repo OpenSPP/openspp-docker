@@ -4,51 +4,52 @@ openg2p_program:
   - "*"
 openspp_registry:
   - "*"
-openspp_program:
-  - "*"
-openspp_communication:
-  - "*"
-openspp_grievance_redress_mechanism:
-  - "*"
-openspp_demo:
-  - "*"
-helpdesk:
-  - helpdesk_mgmt
+#openspp_program:
+#  - "*"
+#openspp_communication:
+#  - "*"
+#openspp_theme:
+#  - "*"
+#openspp_grievance_redress_mechanism:
+#  - "*"
+#openspp_demo:
+#  - "*"
+#openspp_dms:
+#  - "*"
+#helpdesk:
+#  - helpdesk_mgmt
 server-tools:
   - base_multi_image
 server-ux:
   - mass_editing
 queue:
   - queue_job
-server-auth:
-  - auth_oidc
-  - auth_api_key
-rest-framework:
-  - base_rest
-  - base_rest_datamodel
-  - base_rest_pydantic
-  - extendable
-  - pydantic
-  - base_rest_demo
-connector:
-  - component
-smile-odoo:
-  - smile_audit
-openspp_odoo_external_dependencies:
-  - "*"
-web:
-  - web_advanced_search
-  - web_dialog_size
-  - web_responsive
-  - web_m2x_options
-  - web_m2x_options_manager
-  - web_widget_domain_editor_dialog
-  - web_domain_field
-  - web_drop_target
+#server-auth:
+#  - auth_oidc
+#  - auth_api_key
+#rest-framework:
+#  - "*"
+#connector:
+#  - component
+#smile-odoo:
+#  - smile_audit
+#openspp_odoo_external_dependencies:
+#  - "*"
+#web:
+#  - web_advanced_search
+#  - web_dialog_size
+#  - web_responsive
+#  - web_m2x_options
+#  - web_m2x_options_manager
+#  - web_widget_domain_editor_dialog
+#  - web_domain_field
+#  - web_drop_target
 dms:
   - dms
   - dms_field
-social:
+geospatial:
   - "*"
-openspp_base:
-  - "*"
+#social:
+#  - "*"
+#app-odoo:
+#  - "*"

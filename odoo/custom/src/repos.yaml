@@ -11,9 +11,10 @@
     openupgrade: https://github.com/OCA/OpenUpgrade.git
   target: odoo $ODOO_VERSION
   merges:
-    - odoo c98839a4b360cda7f73d6d767d494d026a2d1db0
+    - odoo $ODOO_VERSION
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
+
 openg2p_registry:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
@@ -22,9 +23,9 @@ openg2p_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openg2p: https://github.com/OpenG2P/openg2p-registry.git
-  target: openg2p 15.0-1.0-develop
+  target: openg2p 17.0-develop
   merges:
-    - openg2p 15.0-1.0-develop
+    - openg2p 17.0-develop
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openg2p_program:
@@ -35,9 +36,9 @@ openg2p_program:
     depth: $DEPTH_DEFAULT
   remotes:
     openg2p: https://github.com/OpenG2P/openg2p-program.git
-  target: openg2p 15.0-1.0-develop
+  target: openg2p 17.0-develop
   merges:
-    - openg2p 15.0-1.0-develop
+    - openg2p 17.0-develop
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 openspp_registry:
@@ -48,180 +49,204 @@ openspp_registry:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-registry.git
-  target: openspp 15.1.1
+  target: openspp farmer-registry
   merges:
-    - openspp 15.1.1
+    - openspp farmer-registry
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-odoo-cloud-platform:
+geospatial:
   defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    redis: https://github.com/camptocamp/odoo-cloud-platform.git
-  target: redis 15.0
+    openspp: https://github.com/openspp/geospatial.git
+  target: openspp 17.0-mig-base_geoengine
   merges:
-    - redis 1731912ba4c1d48b61d092beacd0105fb162a0ef
-openspp_program:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-program.git
-  target: openspp 15.1.1
-  merges:
-    - openspp 15.1.1
+    - openspp 17.0-mig-base_geoengine
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-openspp_communication:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-communication.git
-  target: openspp 15.0
-  merges:
-    - openspp 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_grievance_redress_mechanism:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-grievance-redress-mechanism.git
-  target: openspp 15.0
-  merges:
-    - openspp 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_dms:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/OpenSPP/openspp-dms.git
-  target: openspp 15.0
-  merges:
-    - openspp 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_demo:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-demo.git
-  target: openspp 15.1.1
-  merges:
-    - openspp 15.1.1
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-server-auth:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    oca: https://github.com/OCA/server-auth.git
-  target: oca 15.0
-  merges:
-    - oca 0d6f847d3f13570a44c435634f289e2f5ca1a15c
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-rest-framework:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    oca: https://github.com/OCA/rest-framework.git
-    newlogic: https://github.com/newlogic/oca-rest-framework.git
-  target: oca 15.0
-  merges:
-    - oca 780fb402de43f571206f7c302b14f2e21bf52468
-    - newlogic fix-schema-alias
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-smile-odoo:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    smile: https://github.com/Smile-SA/odoo_addons.git
-  target: smile 15.0
-  merges:
-    - smile 2ec3aafa8b6d7eb81ce987778464d8acd5464219
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_odoo_external_dependencies:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-odoo-external-dependencies.git
-  target: openspp 15.0
-  merges:
-    - openspp 15.0
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-queue:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    oca: https://github.com/OCA/queue.git
-  target: oca 15.0
-  merges:
-    - oca bab89cfc916308eb17285fdb241ec7865c6980b6
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-dms:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    oca: https://github.com/OCA/dms.git
-  target: oca 15.0
-  merges:
-    - oca 07e0fef79d6985d275875f507834c6ea6ed0a05f
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-openspp_base:
-  defaults:
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/OpenSPP/openspp-base.git
-  target: openspp 15.1.1
-  merges:
-    - openspp 15.1.1
-openspp_scripts:
-  defaults:
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/openspp-scripts.git
-  target: openspp main
-  merges:
-    - openspp main
+#odoo-cloud-platform:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    redis: https://github.com/camptocamp/odoo-cloud-platform.git
+#  target: redis 15.0
+#  merges:
+#    - redis 1731912ba4c1d48b61d092beacd0105fb162a0ef
+#openspp_program:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/openspp/openspp-program.git
+#  target: openspp 15.1.1
+#  merges:
+#    - openspp 15.1.1
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#openspp_communication:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/openspp/openspp-communication.git
+#  target: openspp 15.0
+#  merges:
+#    - openspp 15.0
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#openspp_grievance_redress_mechanism:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/openspp/openspp-grievance-redress-mechanism.git
+#  target: openspp 15.0
+#  merges:
+#    - openspp 15.0
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#openspp_dms:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/OpenSPP/openspp-dms.git
+#  target: openspp 15.0
+#  merges:
+#    - openspp 15.0
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#openspp_demo:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/openspp/openspp-demo.git
+#  target: openspp 15.1.1
+#  merges:
+#    - openspp 15.1.1
+#    - openspp refs/pull/52/head
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#openspp_theme:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/openspp/openspp-theme.git
+#  target: openspp 15.0
+#  merges:
+#    - openspp 15.0
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#server-auth:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    oca: https://github.com/OCA/server-auth.git
+#  target: oca 15.0
+#  merges:
+#    - oca 0d6f847d3f13570a44c435634f289e2f5ca1a15c
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#rest-framework:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    oca: https://github.com/OCA/rest-framework.git
+#    newlogic: https://github.com/newlogic/oca-rest-framework.git
+#  target: oca 15.0
+#  merges:
+#    - oca 780fb402de43f571206f7c302b14f2e21bf52468
+#    - newlogic fix-schema-alias
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#smile-odoo:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    smile: https://github.com/Smile-SA/odoo_addons.git
+#  target: smile 15.0
+#  merges:
+#    - smile 2ec3aafa8b6d7eb81ce987778464d8acd5464219
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#openspp_odoo_external_dependencies:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/openspp/openspp-odoo-external-dependencies.git
+#  target: openspp 15.0
+#  merges:
+#    - openspp 15.0
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#queue:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    oca: https://github.com/OCA/queue.git
+#  target: oca 15.0
+#  merges:
+#    - oca bab89cfc916308eb17285fdb241ec7865c6980b6
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#dms:
+#  defaults:
+#    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
+#    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
+#    # for a sane value of 100 commits)
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    oca: https://github.com/OCA/dms.git
+#  target: oca 15.0
+#  merges:
+#    - oca 07e0fef79d6985d275875f507834c6ea6ed0a05f
+#    # Example of a merge of the PR with the number <PR>
+#    # - oca refs/pull/<PR>/head
+#openspp-scripts:
+#  defaults:
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    openspp: https://github.com/openspp/openspp-scripts.git
+#  target: openspp main
+#  merges:
+#    - openspp main
+#app-odoo:
+#  defaults:
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    guohuadeng: git@github.com:guohuadeng/app-odoo.git
+#  target: guohuadeng 15.0
+#  merges:
+#      - guohuadeng 15.0

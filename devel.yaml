@@ -2,21 +2,23 @@ version: "2.4"
 
 services:
   odoo_proxy:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
     platform: linux/amd64
+    image: ghcr.io/tecnativa/docker-whitelist:latest
     depends_on:
       - odoo
     networks: &public
       default:
       public:
     ports:
-      - "127.0.0.1:15899:6899"
-      - "127.0.0.1:15069:8069"
+      - "127.0.0.1:17899:6899"
+      - "127.0.0.1:17069:8069"
+      - "127.0.0.1:17072:8072"
     environment:
-      PORT: "6899 8069"
+      PORT: "6899 8069 8072"
       TARGET: odoo
 
   odoo:
+    privileged: true
     extends:
       file: common.yaml
       service: odoo
@@ -40,11 +42,11 @@ services:
       PYTHONOPTIMIZE: ""
       PYTHONPATH: /opt/odoo/custom/src/odoo
       SMTP_PORT: "1025"
-      WDB_WEB_PORT: "15984"
+      WDB_WEB_PORT: "17984"
       # To avoid installing demo data export DOODBA_WITHOUT_DEMO=all
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-false}"
     volumes:
-      - ./odoo/custom:/opt/odoo/custom:ro,z
+      - ./odoo/custom:/opt/odoo/custom:rw,z
       - ./odoo/auto:/opt/odoo/auto:rw,z
     depends_on:
       - db
@@ -70,20 +72,17 @@ services:
       service: db
     networks: *public
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:17432:5432"
     environment:
-      WAN_TLS: 0
-      WAN_AUTH_METHOD: md5
-      WAN_CONNECTION: host
       POSTGRES_DB: *dbname
       POSTGRES_PASSWORD: odoopassword
 
   pgweb:
-    image: docker.io/sosedoff/pgweb
     platform: linux/amd64
+    image: docker.io/sosedoff/pgweb
     networks: *public
     ports:
-      - "127.0.0.1:15081:8081"
+      - "127.0.0.1:17081:8081"
     environment:
       DATABASE_URL: postgres://odoo:odoopassword@db:5432/devel?sslmode=disable
     depends_on:
@@ -95,21 +94,21 @@ services:
       service: smtpfake
     networks: *public
     ports:
-      - "127.0.0.1:15025:8025"
+      - "127.0.0.1:17025:8025"
 
   wdb:
-    image: docker.io/kozea/wdb
     platform: linux/amd64
+    image: docker.io/kozea/wdb
     networks: *public
     ports:
-      - "127.0.0.1:15984:1984"
+      - "127.0.0.1:17984:1984"
     # HACK https://github.com/Kozea/wdb/issues/136
     init: true
 
   # Whitelist outgoing traffic for tests, reports, etc.
   proxy_cdnjs_cloudflare_com:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
     platform: linux/amd64
+    image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
         aliases:
@@ -120,8 +119,8 @@ services:
       PRE_RESOLVE: 1
 
   proxy_fonts_googleapis_com:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
     platform: linux/amd64
+    image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
         aliases:
@@ -132,8 +131,8 @@ services:
       PRE_RESOLVE: 1
 
   proxy_fonts_gstatic_com:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
     platform: linux/amd64
+    image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
         aliases:
@@ -144,8 +143,8 @@ services:
       PRE_RESOLVE: 1
 
   proxy_www_google_com:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
     platform: linux/amd64
+    image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
         aliases:
@@ -156,8 +155,8 @@ services:
       PRE_RESOLVE: 1
 
   proxy_www_googleapis_com:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
     platform: linux/amd64
+    image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
         aliases:
@@ -168,8 +167,8 @@ services:
       PRE_RESOLVE: 1
 
   proxy_www_gravatar_com:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
     platform: linux/amd64
+    image: ghcr.io/tecnativa/docker-whitelist:latest
     networks:
       default:
         aliases:
@@ -181,7 +180,7 @@ services:
 
 networks:
   default:
-    internal: ${DOODBA_NETWORK_INTERNAL-false}
+    internal: ${DOODBA_NETWORK_INTERNAL-true}
   public:
 
 volumes:

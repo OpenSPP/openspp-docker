@@ -23,3 +23,8 @@ pydantic
 pyquerystring
 typing-extensions
 schwifty
+
+# Geo dependencies
+geojson
+shapely
+simplejson
