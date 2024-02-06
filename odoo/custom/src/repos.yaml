@@ -250,3 +250,15 @@ geospatial:
 #  target: guohuadeng 15.0
 #  merges:
 #      - guohuadeng 15.0
+cybro_addons:
+  remotes:
+    cybro: https://github.com/CybroOdoo/CybroAddons.git
+  target: cybro 17.0
+  merges:
+      - cybro 17.0
+muk_addons:
+  remotes:
+    muk: https://github.com/muk-it/odoo-modules.git
+  target: muk 17.0
+  merges:
+      - muk 17.0

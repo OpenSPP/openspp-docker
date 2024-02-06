@@ -49,6 +49,10 @@ dms:
   - dms_field
 geospatial:
   - "*"
+#cybro_addons:
+#  - "*"
+muk_addons:
+  - "*"
 #social:
 #  - "*"
 #app-odoo:
