@@ -41,7 +41,7 @@ openg2p_program:
     - openg2p 17.0-develop
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-openspp_registry:
+openspp_modules:
   defaults:
     # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
     # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
