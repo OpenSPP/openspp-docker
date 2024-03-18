@@ -48,20 +48,10 @@ openspp_modules:
     # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp/openspp-registry.git
-  target: openspp farmer-registry
+    openspp: https://github.com/openspp/openspp-modules.git
+  target: openspp $ODOO_VERSION
   merges:
-    - openspp farmer-registry
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-geospatial:
-  defaults:
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openspp: https://github.com/openspp/geospatial.git
-  target: openspp 17.0-mig-base_geoengine
-  merges:
-    - openspp 17.0-mig-base_geoengine
+    - openspp $ODOO_VERSION
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 #odoo-cloud-platform:
@@ -250,15 +240,9 @@ geospatial:
 #  target: guohuadeng 15.0
 #  merges:
 #      - guohuadeng 15.0
-cybro_addons:
-  remotes:
-    cybro: https://github.com/CybroOdoo/CybroAddons.git
-  target: cybro 17.0
-  merges:
-      - cybro 17.0
 muk_addons:
   remotes:
     muk: https://github.com/muk-it/odoo-modules.git
   target: muk 17.0
   merges:
-      - muk 17.0
+    - muk 17.0

@@ -28,3 +28,4 @@ schwifty
 geojson
 shapely
 simplejson
+pyproj

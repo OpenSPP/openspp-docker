@@ -44,11 +44,9 @@ queue:
 #  - web_widget_domain_editor_dialog
 #  - web_domain_field
 #  - web_drop_target
-dms:
-  - dms
-  - dms_field
-geospatial:
-  - "*"
+# dms:
+#   - dms
+#   - dms_field
 #cybro_addons:
 #  - "*"
 muk_addons:
