@@ -453,6 +453,76 @@ def git_aggregate(c):
 
 
 @task(develop)
+def git_aggregate_host(c):
+    """Download odoo & addons git code directly on the host.
+
+    Executes git-aggregator on the host machine, avoiding Docker SSH agent issues.
+    """
+    # Define paths
+    src_path = PROJECT_ROOT / "odoo" / "custom" / "src"
+    repos_yaml = src_path / "repos.yaml"
+
+    # Create src directory if it doesn't exist
+    src_path.mkdir(parents=True, exist_ok=True)
+
+    # Print the paths being used for clarity
+    _logger.info("Project root: %s", PROJECT_ROOT)
+    _logger.info("Source path: %s", src_path)
+    _logger.info("Repos YAML: %s", repos_yaml)
+
+    # Define environment variables used in repos.yaml
+    env = {
+        "DEPTH_DEFAULT": "1",  # Default depth for shallow clones
+        "DEPTH_MERGE": "100",  # Depth when merging PRs
+        "PATH": os.environ["PATH"],
+        # Add any other variables your repos.yaml might use
+    }
+
+    # Important: Change directory to src_path before running git-aggregator
+    _logger.info(
+        "\nRunning git-aggregator from the src directory to ensure correct repository placement..."
+    )
+    with c.cd(str(src_path)):
+        # Run git-aggregator
+        _logger.info("Starting git-aggregator...")
+        try:
+            # Use the relative path to repos.yaml (just the filename when in the same directory)
+            result = c.run(
+                "gitaggregate -c repos.yaml --expand-env aggregate",
+                env=env,
+                pty=True,
+            )
+
+            if result.ok:
+                _logger.info("\nGit aggregation completed successfully!")
+                _logger.info("Repositories have been cloned into: %s", src_path)
+            else:
+                _logger.info("\nGit aggregation failed. Check the errors above.")
+        except Exception as e:
+            _logger.info("\nError running git-aggregator: %s", e)
+            _logger.info("\nTrying without environment variable expansion...")
+            try:
+                result = c.run("gitaggregate -c repos.yaml aggregate", pty=True)
+                if result.ok:
+                    _logger.info("\nGit aggregation completed successfully!")
+                    _logger.info("Repositories have been cloned into: %s", src_path)
+            except Exception as e2:
+                _logger.info(
+                    "\nError running git-aggregator without env expansion: %s", e2
+                )
+
+    write_code_workspace_file(c)
+    for git_folder in SRC_PATH.glob("*/.git/.."):
+        action = (
+            "install"
+            if (git_folder / ".pre-commit-config.yaml").is_file()
+            else "uninstall"
+        )
+        with c.cd(str(git_folder)):
+            c.run(f"pre-commit {action}")
+
+
+@task(develop)
 def closed_prs(c):
     """Test closed PRs from repos.yaml"""
     with c.cd(str(PROJECT_ROOT / "odoo/custom/src")):
@@ -1065,3 +1135,365 @@ def update(c):
             env=UID_ENV,
             pty=True,
         )
+
+
+@task(
+    help={
+        "addons_dir": "Directory or specific folder path containing the addons to update POT files for. Default: odoo/custom/src",
+        "commit": "Whether to commit changes. Default: False",
+        "modules": "Comma-separated list of module patterns to match (e.g., 'spp_*,g2p_*'). Default: None (all modules)",
+        "database": "Database name to use. Default: devel",
+        "no_fuzzy": "Disable fuzzy matching. Default: False",
+        "update_po": "Update .po files after generating .pot files. Default: False",
+        "lang": "Language code for PO files to update/create. Default: None",
+        "force": "Force update existing PO files. Default: False",
+        "msgmerge": "Run msgmerge if POT file is created/updated. Default: False",
+        "create_i18n": "Create i18n directories if they don't exist. Default: True",
+        "debug": "Run in debug mode with extra logging. Default: False",
+    }
+)
+def update_pot(
+    c,
+    addons_dir="odoo/custom/src",
+    commit=False,
+    modules=None,
+    database="devel",
+    no_fuzzy=False,
+    update_po=False,
+    lang=None,
+    force=False,
+    msgmerge=False,
+    create_i18n=True,
+    debug=False,
+):
+    """Update POT files and optionally PO files for all addons in specified directory or specific folder.
+
+    IMPORTANT: Modules must be installed in the database before translations can be extracted.
+    The extraction process uses Odoo's translation export mechanism which requires installed modules.
+
+    Examples:
+        1. Extract POT files for specific module patterns:
+           invoke update-pot --modules="spp_*,g2p_*,pds_*" --database=devel --no-fuzzy --msgmerge
+
+        2. Update POT files and all existing PO files:
+           invoke update-pot --modules="spp_*,g2p_*,pds_*" --database=devel --no-fuzzy --update-po
+
+        3. Create/update a specific language PO file:
+           invoke update-pot --modules="spp_*,g2p_*,pds_*" --update-po --lang=fr
+
+        4. Force update existing PO files:
+           invoke update-pot --modules="spp_*,g2p_*,pds_*" --update-po --lang=fr --force
+
+        5. Process a specific module directory:
+           invoke update-pot --addons-dir="odoo/custom/src/openspp_modules" --database=devel --no-fuzzy
+
+        6. Run with debug mode for more logging:
+           invoke update-pot --addons-dir="odoo/custom/src/openspp_modules" --debug
+    """
+    module_list = []
+    auto_addons = Path(PROJECT_ROOT, "odoo", "auto", "addons")
+    addons_path = None
+
+    if debug:
+        _logger.info("Running in debug mode")
+        _logger.info("PROJECT_ROOT: %s", PROJECT_ROOT)
+        _logger.info("auto_addons path: %s", auto_addons)
+
+    if modules:
+        # Module pattern specified - use this directly
+        # Handle comma-separated patterns
+        patterns = [p.strip() for p in modules.split(",")]
+        for pattern in patterns:
+            if "*" in pattern:
+                # For patterns like spp_*, g2p_*, etc.
+                matching = list(auto_addons.glob(pattern))
+                module_list.extend([m.name for m in matching if m.is_dir()])
+            else:
+                # For exact module names
+                if (auto_addons / pattern).is_dir():
+                    module_list.append(pattern)
+    else:
+        # No module pattern - look at specified directory
+        addons_path = Path(PROJECT_ROOT, addons_dir)
+        if not addons_path.exists():
+            # Try as absolute path
+            addons_path = Path(addons_dir)
+            if not addons_path.exists():
+                raise exceptions.ParseError("Path %s does not exist" % addons_dir)
+
+        if debug:
+            _logger.info("addons_path: %s", addons_path)
+
+        # Figure out if we need to find modules in a repository or in a specific folder
+        if addons_path.name in ("src", "addons"):
+            # Path is a general container, find all repositories
+            for repo_path in addons_path.glob("*"):
+                if not repo_path.is_dir() or repo_path.name == "odoo":
+                    continue
+
+                # Try to get a list of modules in this repo from auto/addons
+                repo_name = repo_path.name
+                if debug:
+                    _logger.info("Looking for modules in repo: %s", repo_name)
+
+                for module_dir in auto_addons.glob("*"):
+                    if not module_dir.is_dir():
+                        continue
+
+                    # Check if this module belongs to the repository
+                    # We do this by checking if a link exists in auto/addons pointing to the repo
+                    if module_dir.is_symlink():
+                        try:
+                            target = module_dir.resolve()
+                            if debug:
+                                _logger.info(
+                                    "Module %s is a symlink to %s",
+                                    module_dir.name,
+                                    target,
+                                )
+                            if repo_name in str(target):
+                                module_list.append(module_dir.name)
+                        except Exception as e:
+                            _logger.warning(
+                                "Error resolving symlink for %s: %s", module_dir, e
+                            )
+
+        else:
+            # Path is a specific repo or module, figure out which
+            repo_or_module_name = addons_path.name
+
+            if debug:
+                _logger.info("Examining specific path: %s", repo_or_module_name)
+
+            # First check if it's a specific module
+            if (addons_path / "__manifest__.py").exists() or (
+                addons_path / "__openerp__.py"
+            ).exists():
+                # It's a module - find its name in auto/addons
+                module_name = repo_or_module_name
+                if (auto_addons / module_name).exists():
+                    module_list.append(module_name)
+                    if debug:
+                        _logger.info("Found module %s in auto/addons", module_name)
+            else:
+                # It's a repository - find all modules that belong to this repo
+                repo_name = repo_or_module_name
+
+                if debug:
+                    _logger.info("Looking for modules in repository: %s", repo_name)
+
+                # Check the repository structure to determine the module path pattern
+                if (addons_path / "addons").is_dir():
+                    # Modules are in an 'addons' subdirectory
+                    module_dirs = list(addons_path.glob("addons/*"))
+                    if debug:
+                        _logger.info(
+                            "Found addons subdirectory with %d potential modules",
+                            len(module_dirs),
+                        )
+                else:
+                    # Modules are directly in the repository
+                    module_dirs = list(addons_path.glob("*"))
+                    if debug:
+                        _logger.info(
+                            "Found %d potential modules directly in repo",
+                            len(module_dirs),
+                        )
+
+                # Find corresponding modules in auto/addons
+                for module_dir in module_dirs:
+                    if not module_dir.is_dir():
+                        continue
+
+                    module_name = module_dir.name
+                    if (module_dir / "__manifest__.py").exists() or (
+                        module_dir / "__openerp__.py"
+                    ).exists():
+                        if (auto_addons / module_name).exists():
+                            module_list.append(module_name)
+                            if debug:
+                                _logger.info(
+                                    "Found module %s in auto/addons", module_name
+                                )
+
+    if not module_list:
+        # If we still don't have modules, let's try a direct path lookup from auto/addons
+        if addons_path:
+            _logger.info(
+                "No modules found using standard methods, trying direct path mapping..."
+            )
+            for module_dir in auto_addons.glob("*"):
+                if not module_dir.is_dir():
+                    continue
+
+                if module_dir.is_symlink():
+                    try:
+                        target = os.path.normpath(str(module_dir.resolve()))
+                        src_path = os.path.normpath(str(addons_path))
+
+                        if debug:
+                            _logger.info(
+                                "Module %s target: %s", module_dir.name, target
+                            )
+                            _logger.info("Comparing with source path: %s", src_path)
+
+                        if src_path in target or str(addons_path.name) in target:
+                            module_list.append(module_dir.name)
+                            if debug:
+                                _logger.info(
+                                    "Matched module %s by path", module_dir.name
+                                )
+                    except Exception as e:
+                        _logger.warning(
+                            "Error resolving symlink for %s: %s", module_dir, e
+                        )
+
+        if not module_list:
+            # Last attempt: try to find any modules with repository name in their paths
+            if addons_path:
+                repo_name = addons_path.name
+                if debug:
+                    _logger.info("Trying to match modules by repo name: %s", repo_name)
+                for module_dir in auto_addons.glob("*"):
+                    if not module_dir.is_dir():
+                        continue
+
+                    if module_dir.is_symlink():
+                        try:
+                            target = str(module_dir.resolve())
+                            if repo_name in target:
+                                module_list.append(module_dir.name)
+                                if debug:
+                                    _logger.info(
+                                        "Matched module %s by repo name in path",
+                                        module_dir.name,
+                                    )
+                        except Exception as e:
+                            _logger.warning(
+                                "Error resolving symlink for %s: %s", module_dir, e
+                            )
+
+    if not module_list:
+        raise exceptions.ParseError(
+            "No modules found to process in %s. Try using --modules instead."
+            % addons_dir
+        )
+
+    _logger.info("Processing modules: %s", ", ".join(module_list))
+
+    # Create i18n directories if needed
+    if create_i18n:
+        for module_name in module_list:
+            module_path = auto_addons / module_name
+            i18n_dir = module_path / "i18n"
+            if not i18n_dir.exists():
+                _logger.info("Creating i18n directory for %s", module_name)
+                i18n_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build the command following the pattern used by other tasks
+    cmd = (
+        "%s run --rm odoo click-odoo-makepot --addons-dir /opt/odoo/auto/addons"
+        % DOCKER_COMPOSE_CMD
+    )
+
+    if database:
+        cmd += " -d %s" % database
+    if no_fuzzy:
+        cmd += " --no-fuzzy-matching"
+    if commit:
+        cmd += " --commit"
+    if msgmerge:
+        cmd += " --msgmerge"
+
+    # Add modules list
+    cmd += " -m %s" % ",".join(module_list)
+
+    # Add log level for more verbose output if debugging
+    if debug:
+        cmd += " --log-level=debug"
+
+    with c.cd(str(PROJECT_ROOT)):
+        try:
+            _logger.info("Running command: %s", cmd)
+            c.run(cmd, env=UID_ENV, pty=True)
+            _logger.info("POT file generation completed")
+        except Exception as e:
+            _logger.error("Failed to update POT files: %s", e)
+            return
+
+    # Check for created POT files and report
+    pot_files_created = []
+    for module_name in module_list:
+        module_path = auto_addons / module_name
+        i18n_dir = module_path / "i18n"
+        pot_files = list(i18n_dir.glob("*.pot"))
+        if pot_files:
+            pot_files_created.extend([str(p) for p in pot_files])
+
+    if pot_files_created:
+        _logger.info("POT files created/updated: %d", len(pot_files_created))
+    else:
+        _logger.warning("No POT files were created or updated. This might be because:")
+        _logger.warning("1. The modules have no translatable strings")
+        _logger.warning("2. The POT files already exist and were not changed")
+        _logger.warning("3. The modules are not installed in the database")
+        _logger.warning("4. There was an issue with the extraction process")
+
+    # Update PO files if requested
+    if update_po:
+        _logger.info("Updating PO files")
+        po_files_updated = 0
+        # Find all i18n directories in the processed modules
+        i18n_dirs = []
+        for module in module_list:
+            module_path = auto_addons / module
+            if (module_path / "i18n").exists():
+                i18n_dirs.append(module_path / "i18n")
+
+        for i18n_dir in i18n_dirs:
+            # Find all POT files
+            pot_files = list(i18n_dir.glob("*.pot"))
+            for pot_file in pot_files:
+                if lang:
+                    # Update/create specific language PO file
+                    po_file = pot_file.parent / f"{lang}.po"
+                    if force or not po_file.exists():
+                        if not po_file.exists():
+                            # Create new PO file
+                            _logger.info("Creating new PO file %s", po_file)
+                            cmd = "msginit --no-translator -l %s -i %s -o %s" % (
+                                lang,
+                                pot_file,
+                                po_file,
+                            )
+                        else:
+                            # Update existing PO file
+                            _logger.info("Updating existing PO file %s", po_file)
+                            cmd = "msgmerge --no-fuzzy-matching -N -U %s %s" % (
+                                po_file,
+                                pot_file,
+                            )
+                        with c.cd(str(PROJECT_ROOT)):
+                            try:
+                                c.run(cmd, hide=True)
+                                _logger.info("Updated %s", po_file)
+                                po_files_updated += 1
+                            except Exception as e:
+                                _logger.error("Failed to update %s: %s", po_file, e)
+                else:
+                    # Update all existing PO files
+                    po_files = list(i18n_dir.glob("*.po"))
+                    if not po_files:
+                        _logger.info("No existing PO files found in %s", i18n_dir)
+                    for po_file in po_files:
+                        _logger.info("Updating PO file %s", po_file)
+                        cmd = "msgmerge --update %s %s" % (po_file, pot_file)
+                        with c.cd(str(PROJECT_ROOT)):
+                            try:
+                                c.run(cmd, hide=True)
+                                _logger.info("Updated %s", po_file)
+                                po_files_updated += 1
+                            except Exception as e:
+                                _logger.error("Failed to update %s: %s", po_file, e)
+
+        _logger.info("Total PO files updated: %d", po_files_updated)
