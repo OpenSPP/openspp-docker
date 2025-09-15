@@ -78,9 +78,9 @@ openspp_modules:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/openspp/openspp-modules.git
-  target: openspp openspp-17.0.1.2.1
+  target: openspp 17.0
   merges:
-    - openspp openspp-17.0.1.2.1
+    - openspp 17.0
 
 muk_addons:
   remotes:
