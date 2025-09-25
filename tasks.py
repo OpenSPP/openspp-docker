@@ -474,8 +474,8 @@ def git_aggregate_host(c):
     env = {
         "DEPTH_DEFAULT": "1",  # Default depth for shallow clones
         "DEPTH_MERGE": "100",  # Depth when merging PRs
-        "PATH": os.environ["PATH"],
-        # Add any other variables your repos.yaml might use
+        "ODOO_VERSION": f"{ODOO_VERSION:.1f}",  # Make available for repos.yaml substitution
+        "PATH": os.environ.get("PATH", ""),
     }
 
     # Important: Change directory to src_path before running git-aggregator
@@ -599,12 +599,12 @@ def start(c, detach=True, debugpy=False):
 @task(
     help={
         "modules": "Comma-separated list of modules to install.",
+        "dbname": "Target database name (defaults to PGDATABASE/devel).",
         "core": "Install all core addons. Default: False",
         "extra": "Install all extra addons. Default: False",
         "private": "Install all private addons. Default: False",
         "enterprise": "Install all enterprise addons. Default: False",
-        "cur-file": "Path to the current file."
-        " Addon name will be obtained from there to install.",
+        "cur-file": "Path to the current file. Addon name will be obtained from there to install.",
     },
 )
 def install(
@@ -615,6 +615,7 @@ def install(
     extra=False,
     private=False,
     enterprise=False,
+    dbname=None,
 ):
     """Install Odoo addons
 
@@ -631,17 +632,25 @@ def install(
                 " See --help for details."
             )
         modules = cur_module
-    cmd = DOCKER_COMPOSE_CMD + " run --rm odoo addons init"
-    if core:
-        cmd += " --core"
-    if extra:
-        cmd += " --extra"
-    if private:
-        cmd += " --private"
-    if enterprise:
-        cmd += " --enterprise"
-    if modules:
-        cmd += f" -w {modules}"
+    target_db = dbname or os.environ.get("PGDATABASE") or "devel"
+    # Prefer direct Odoo CLI with explicit DB when modules are provided
+    if modules and not (core or extra or private or enterprise):
+        cmd = (
+            DOCKER_COMPOSE_CMD
+            + f" run --rm -e DB_FILTER=^{target_db}$ odoo odoo --stop-after-init -d {target_db} -i {modules}"
+        )
+    else:
+        cmd = DOCKER_COMPOSE_CMD + " run --rm odoo addons init"
+        if core:
+            cmd += " --core"
+        if extra:
+            cmd += " --extra"
+        if private:
+            cmd += " --private"
+        if enterprise:
+            cmd += " --enterprise"
+        if modules:
+            cmd += f" -w {modules}"
     with c.cd(str(PROJECT_ROOT)):
         c.run(DOCKER_COMPOSE_CMD + " stop odoo")
         c.run(
