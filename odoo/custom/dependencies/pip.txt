@@ -50,6 +50,7 @@ swagger_spec_validator
 urllib3>=2.2.2
 xlrd
 zipp>=3.19.1
+openpyxl
 
 # fastapi dependencies
 fastapi==0.112.2
