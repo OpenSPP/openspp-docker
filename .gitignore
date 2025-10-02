@@ -30,3 +30,6 @@
 /.docker/
 
 .idea
+
+# OSX Files
+.DS_Store

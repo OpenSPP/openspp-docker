@@ -940,7 +940,7 @@ def resetdb(
             pty=True,
         )
         c.run(
-            f"{_run} click-odoo-initdb -n {dbname} -m {modules}",
+            f"{_run} click-odoo-initdb -n {dbname} -m {modules} --no-demo",
             env=UID_ENV,
             pty=True,
         )
