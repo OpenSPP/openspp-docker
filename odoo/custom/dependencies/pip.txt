@@ -41,6 +41,7 @@ jsonschema
 jwcrypto
 numpy>=1.22.2
 pyjwt>=2.4.0
+pandas
 pyproj
 python-magic
 qrcode
