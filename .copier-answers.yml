@@ -4,7 +4,7 @@ _src_path: gh:Tecnativa/doodba-copier-template
 backup_deletion: false
 backup_dst: boto3+s3://example_bucket
 backup_email_from: contact@openspp.org
-backup_email_to: null
+backup_email_to: ""
 backup_image_version: latest
 backup_tz: UTC
 cidr_whitelist: null
@@ -14,7 +14,7 @@ domains_prod:
 domains_test:
   - hosts:
       - demo-test.openspp.org
-gitlab_url: null
+gitlab_url: ""
 odoo_dbfilter: ^prod
 odoo_initial_lang: en_US
 odoo_listdb: false
@@ -33,10 +33,10 @@ postgres_version: "17"
 project_author: OpenSPP
 project_license: LGPL-3.0-or-later
 project_name: OpenSPP
-smtp_canonical_default: null
-smtp_canonical_domains: null
+smtp_canonical_default: ""
+smtp_canonical_domains: []
 smtp_default_from: contact@openspp.org
-smtp_relay_host: null
+smtp_relay_host: ""
 smtp_relay_port: 587
-smtp_relay_user: null
+smtp_relay_user: ""
 smtp_relay_version: "10"
