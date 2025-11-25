@@ -1,7 +1,9 @@
 [![Doodba deployment](https://img.shields.io/badge/deployment-doodba-informational)](https://github.com/Tecnativa/doodba)
-[![Last template update](https://img.shields.io/badge/last%20template%20update-v6.0.1-informational)](https://github.com/Tecnativa/doodba-copier-template/tree/v6.0.1)
-[![Odoo](https://img.shields.io/badge/odoo-v17.0-a3478a)](https://github.com/odoo/odoo/tree/17.0)
-[![Apache-2.0 license](https://img.shields.io/badge/license-Apache--2.0-success})](LICENSE)
+[![Last template update](https://img.shields.io/badge/last%20template%20update-v9.0.5-informational)](https://github.com/Tecnativa/doodba-copier-template/tree/v9.0.5)
+[![Odoo](https://img.shields.io/badge/odoo-v19.0-a3478a)](https://github.com/odoo/odoo/tree/19.0)
+[![Deployment data](https://img.shields.io/badge/%F0%9F%8C%90%20prod-demo.openspp.org-green)](http://demo.openspp.org)
+[![Deployment data](https://img.shields.io/badge/%E2%9A%92%20demo-demo--test.openspp.org-yellow)](http://demo-test.openspp.org)
+[![LGPL-3.0-or-later license](https://img.shields.io/badge/license-LGPL--3.0--or--later-success})](LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 
 # OpenSPP Docker Deployment

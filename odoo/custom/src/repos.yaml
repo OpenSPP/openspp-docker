@@ -1,125 +1,97 @@
 # See https://github.com/Tecnativa/doodba#optodoocustomsrcreposyaml
 ./odoo:
   defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
+    depth: 1
   remotes:
     odoo: https://github.com/odoo/odoo.git
-    openupgrade: https://github.com/OCA/OpenUpgrade.git
-  target: odoo $ODOO_VERSION
+  target: odoo 19.0
   merges:
-    - odoo $ODOO_VERSION
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
+    - odoo 19.0
 
-openg2p_registry:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openg2p: https://github.com/OpenSPP/openg2p-registry.git
-  target: openg2p $ODOO_VERSION
-  merges:
-    - openg2p 17.0-develop-openspp
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-
-openg2p_program:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: $DEPTH_DEFAULT
-  remotes:
-    openg2p: https://github.com/OpenSPP/openg2p-program.git
-  target: openg2p $ODOO_VERSION
-  merges:
-    - openg2p 17.0-develop-openspp
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-
-openg2p_rest_framework:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: 1
-  remotes:
-    openg2p: https://github.com/OpenSPP/openg2p-rest-framework.git
-  target: openg2p 17.0-openspp
-  merges:
-    - openg2p 17.0-openspp
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
-
-openg2p_auth:
-  defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
-    depth: 1
-  remotes:
-    openg2p: https://github.com/OpenSPP/openg2p-auth.git
-  target: openg2p 17.0-develop-openspp
-  merges:
-    - openg2p 17.0-develop-openspp
-    # Example of a merge of the PR with the number <PR>
-    # - oca refs/pull/<PR>/head
+# OpenSPP / OpenG2P repos (modules still disabled in addons.yaml)
+# openg2p_registry:
+#   defaults:
+#     depth: $DEPTH_DEFAULT
+#   remotes:
+#     openg2p: https://github.com/OpenSPP/openg2p-registry.git
+#   target: openg2p $ODOO_VERSION
+#   merges:
+#     - openg2p 19.0-develop-openspp
+#
+# openg2p_program:
+#   defaults:
+#     depth: $DEPTH_DEFAULT
+#   remotes:
+#     openg2p: https://github.com/OpenSPP/openg2p-program.git
+#   target: openg2p $ODOO_VERSION
+#   merges:
+#     - openg2p 19.0-develop-openspp
+#
+# openg2p_rest_framework:
+#   defaults:
+#     depth: 1
+#   remotes:
+#     openg2p: https://github.com/OpenSPP/openg2p-rest-framework.git
+#   target: openg2p 19.0-openspp
+#   merges:
+#     - openg2p 19.0-openspp
+#
+# openg2p_auth:
+#   defaults:
+#     depth: 1
+#   remotes:
+#     openg2p: https://github.com/OpenSPP/openg2p-auth.git
+#   target: openg2p 19.0-develop-openspp
+#   merges:
+#     - openg2p 19.0-develop-openspp
 
 openspp_modules:
   defaults:
-    # Shallow repositories ($DEPTH_DEFAULT=1) are faster & thinner
-    # You may need a bigger depth when merging PRs (use $DEPTH_MERGE
-    # for a sane value of 100 commits)
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/openspp/openspp-modules.git
-  target: openspp 17.0
+    openspp: https://github.com/OpenSPP/openspp-clean-jeremi.git
+  target: openspp claude/continue-odoo-19-migration-01Kznt8SgPk9ZLDmN4UrPdzL
   merges:
-    - openspp 17.0
+    - openspp claude/continue-odoo-19-migration-01Kznt8SgPk9ZLDmN4UrPdzL
 
 muk_addons:
   remotes:
-    muk: https://github.com/OpenSPP/mukit-modules.git
-  target: muk $ODOO_VERSION
+    muk: https://github.com/muk-it/odoo-modules.git
+  target: muk 19.0
   merges:
-    - muk 17.0-openspp
+    - muk 19.0
 
 server-ux:
   remotes:
     OCA: https://github.com/OCA/server-ux.git
-  target: OCA 17.0
+  target: OCA 19.0
   merges:
-    - OCA 17.0
+    - OCA 19.0
 
 server-tools:
   remotes:
     OCA: https://github.com/OCA/server-tools.git
-  target: OCA 17.0
+  target: OCA 19.0
   merges:
-    - OCA 17.0
+    - OCA 19.0
 
 queue:
   remotes:
     OCA: https://github.com/OCA/queue.git
-  target: OCA 17.0
+  target: OCA 19.0
   merges:
-    - OCA 17.0
+    - OCA 19.0
 
 server-backend:
   remotes:
     OCA: https://github.com/OCA/server-backend.git
-  target: OCA 17.0
+  target: OCA 19.0
   merges:
-    - OCA 17.0
+    - OCA 19.0
 
 web-api:
   remotes:
     OCA: https://github.com/OCA/web-api.git
-  target: OCA 17.0
+  target: OCA 19.0
   merges:
-    - OCA 17.0
+    - OCA 19.0

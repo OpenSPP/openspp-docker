@@ -4,13 +4,16 @@ This file is to be executed with https://www.pyinvoke.org/ in Python 3.8.1+.
 
 Contains common helpers to develop using this child project.
 """
+
 import json
 import os
 import shutil
 import stat
+import subprocess
 import tempfile
 import time
 from datetime import datetime
+from glob import iglob
 from itertools import chain
 from logging import getLogger
 from pathlib import Path
@@ -46,8 +49,16 @@ ODOO_VERSION = float(
         "build"
     ]["args"]["ODOO_VERSION"]
 )
-DOCKER_COMPOSE_CMD = f"{shutil.which('docker')} compose" or shutil.which(
-    "docker-compose"
+# Depending on the user's docker version either version of docker compose could not
+# be available. We default to v2 and fallback to v1.
+docker_compose_v2 = (
+    subprocess.run([shutil.which("docker"), "compose"], capture_output=True).returncode
+    == 0
+)
+DOCKER_COMPOSE_CMD = (
+    f"{shutil.which('docker')} compose"
+    if docker_compose_v2
+    else shutil.which("docker-compose")
 )
 
 _logger = getLogger(__name__)
@@ -99,6 +110,70 @@ def _get_cwd_addon(file):
             return None
 
 
+def _scan_subrepos_and_add_path_mappings(
+    cw_config,
+    debugpy_configuration,
+    firefox_configuration,
+    chrome_configuration,
+):
+    """Scan subrepos in SRC_PATH, configure folders & pathMappings."""
+    for subrepo in SRC_PATH.glob("*"):
+        if not subrepo.is_dir():
+            continue
+        if (subrepo / ".git").exists() and subrepo.name != "odoo":
+            cw_config["folders"].append(
+                {"path": str(subrepo.relative_to(PROJECT_ROOT))}
+            )
+
+        # Check if subrepo is itself a doodba-copier project
+        is_doodba_subproject = False
+        answers_file = subrepo / ".copier-answers.yml"
+        if answers_file.is_file():
+            with answers_file.open() as f:
+                answers = yaml.safe_load(f) or {}
+            if "Tecnativa/doodba-copier-template" in answers.get("_src_path", ""):
+                is_doodba_subproject = True
+
+        private_dir = subrepo / "odoo" / "custom" / "src" / "private"
+        # Default scanning approach (1-level + addons/* + private/*)
+        for addon in chain(
+            subrepo.glob("*"),
+            subrepo.glob("addons/*"),
+            private_dir.glob("*"),
+        ):
+            if (addon / "__manifest__.py").is_file() or (
+                addon / "__openerp__.py"
+            ).is_file():
+                if is_doodba_subproject:
+                    local_path = "${workspaceFolder:%s}/odoo/custom/src/private/%s" % (  # noqa: UP031
+                        subrepo.name,
+                        addon.name,
+                    )
+                elif subrepo.name == "odoo":
+                    local_path = "${workspaceFolder:%s}/addons/%s/" % (  # noqa: UP031
+                        subrepo.name,
+                        addon.name,
+                    )
+                else:
+                    local_path = "${workspaceFolder:%s}/%s" % (  # noqa: UP031
+                        subrepo.name,
+                        addon.name,
+                    )
+                debugpy_configuration["pathMappings"].append(
+                    {
+                        "localRoot": local_path,
+                        "remoteRoot": f"/opt/odoo/auto/addons/{addon.name}/",
+                    }
+                )
+                url = f"http://localhost:{ODOO_VERSION:.0f}069/{addon.name}/static/"
+                path = "${workspaceFolder:%s}/%s/static/" % (  # noqa: UP031
+                    subrepo.name,
+                    addon.relative_to(subrepo),
+                )
+                firefox_configuration["pathMappings"].append({"url": url, "path": path})
+                chrome_configuration["pathMapping"][url] = path
+
+
 @task
 def write_code_workspace_file(c, cw_path=None):
     """Generate code-workspace file definition.
@@ -119,7 +194,7 @@ def write_code_workspace_file(c, cw_path=None):
     Example: `--cw-path doodba.my-custom-name.code-workspace`
     """
     root_name = f"doodba.{PROJECT_ROOT.name}"
-    root_var = "${workspaceFolder:%s}" % root_name
+    root_var = "${workspaceFolder:%s}" % root_name  # noqa: UP031
     if not cw_path:
         try:
             cw_path = next(PROJECT_ROOT.glob("doodba.*.code-workspace"))
@@ -138,6 +213,7 @@ def write_code_workspace_file(c, cw_path=None):
     cw_config["settings"].update(
         {
             "python.autoComplete.extraPaths": [f"{str(SRC_PATH)}/odoo"],
+            "python.analysis.extraPaths": [f"{str(SRC_PATH)}/odoo"],
             "python.formatting.provider": "none",
             "python.linting.flake8Enabled": True,
             "python.linting.ignorePatterns": [f"{str(SRC_PATH)}/odoo/**/*.py"],
@@ -194,6 +270,7 @@ def write_code_workspace_file(c, cw_path=None):
     }
     if chrome_executable:
         chrome_configuration["runtimeExecutable"] = chrome_executable
+
     cw_config["launch"] = {
         "compounds": [
             {
@@ -214,7 +291,7 @@ def write_code_workspace_file(c, cw_path=None):
             chrome_configuration,
         ],
     }
-    # Configure folders and debuggers
+    # Configure pathMappings for the main odoo folder
     debugpy_configuration["pathMappings"].append(
         {
             "localRoot": "${workspaceFolder:odoo}/",
@@ -222,38 +299,13 @@ def write_code_workspace_file(c, cw_path=None):
         }
     )
     cw_config["folders"] = []
-    for subrepo in SRC_PATH.glob("*"):
-        if not subrepo.is_dir():
-            continue
-        if (subrepo / ".git").exists() and subrepo.name != "odoo":
-            cw_config["folders"].append(
-                {"path": str(subrepo.relative_to(PROJECT_ROOT))}
-            )
-        for addon in chain(subrepo.glob("*"), subrepo.glob("addons/*")):
-            if (addon / "__manifest__.py").is_file() or (
-                addon / "__openerp__.py"
-            ).is_file():
-                if subrepo.name == "odoo":
-                    # ruff: noqa: UP031
-                    local_path = "${workspaceFolder:%s}/addons/%s/" % (
-                        subrepo.name,
-                        addon.name,
-                    )
-                else:
-                    local_path = "${workspaceFolder:%s}/%s" % (subrepo.name, addon.name)
-                debugpy_configuration["pathMappings"].append(
-                    {
-                        "localRoot": local_path,
-                        "remoteRoot": f"/opt/odoo/auto/addons/{addon.name}/",
-                    }
-                )
-                url = f"http://localhost:{ODOO_VERSION:.0f}069/{addon.name}/static/"
-                path = "${workspaceFolder:%s}/%s/static/" % (
-                    subrepo.name,
-                    addon.relative_to(subrepo),
-                )
-                firefox_configuration["pathMappings"].append({"url": url, "path": path})
-                chrome_configuration["pathMapping"][url] = path
+    _scan_subrepos_and_add_path_mappings(
+        cw_config,
+        debugpy_configuration,
+        firefox_configuration,
+        chrome_configuration,
+    )
+
     cw_config["tasks"] = {
         "version": "2.0.0",
         "tasks": [
@@ -558,14 +610,14 @@ def lint(c, verbose=False):
 
 
 @task()
-def start(c, detach=True, debugpy=False):
+def start(c, detach=True, debugpy=False, _reload=True, port_prefix=0):
     """Start environment."""
     cmd = DOCKER_COMPOSE_CMD + " up"
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".yaml",
     ) as tmp_docker_compose_file:
-        if debugpy:
+        if debugpy or not _reload:
             # Remove auto-reload
             cmd = (
                 DOCKER_COMPOSE_CMD + " -f docker-compose.yml "
@@ -578,13 +630,16 @@ def start(c, detach=True, debugpy=False):
         if detach:
             cmd += " --detach"
         with c.cd(str(PROJECT_ROOT)):
+            env = dict(
+                UID_ENV,
+                DOODBA_DEBUGPY_ENABLE=str(int(debugpy)),
+            )
+            if port_prefix:
+                env["PORT_PREFIX"] = str(port_prefix)
             result = c.run(
                 cmd,
                 pty=True,
-                env=dict(
-                    UID_ENV,
-                    DOODBA_DEBUGPY_ENABLE=str(int(debugpy)),
-                ),
+                env=env,
             )
             if not (
                 "Recreating" in result.stdout
@@ -658,6 +713,103 @@ def install(
             env=UID_ENV,
             pty=True,
         )
+
+
+@task(
+    help={
+        "module": "Specific Odoo module to update.",
+        "all": "Update all modules. Takes a lot of time. [default: False]",
+        "repo": "Update all modules from a specific repository.",
+        "msgmerge": "Merge .pot changes into all .po files. [default: True]",
+        "fuzzy_matching": "Use fuzzy matching when merging. [default: False]",
+        "purge_old_translations": "Remove lines with old translations. [default: True]",
+        "remove_dates": "Remove dates from .po files. [default: True]",
+    }
+)
+def updatepot(
+    c,
+    module=None,
+    _all=False,
+    repo=None,
+    msgmerge=True,
+    fuzzy_matching=False,
+    purge_old_translations=True,
+    remove_dates=True,
+):
+    """Updates POT of a given module"""
+    if not module and not _all and not repo:
+        cur_module = _get_cwd_addon(Path.cwd())
+        if not cur_module:
+            raise exceptions.ParseError(
+                msg="Odoo addon to update translation not found "
+                "You must provide at least one of: -m {module}, "
+                "be in the subdirectory of a module, --all or -r {repo} "
+                "See --help for details."
+            )
+        module = cur_module
+
+    cmd = (
+        DOCKER_COMPOSE_CMD
+        + f" run --rm  -v {PROJECT_ROOT}/odoo/custom:/tmp/odoo/custom:rw,z "
+        f"-v {PROJECT_ROOT}/odoo/auto:/tmp/odoo/auto:rw,z odoo "
+        "click-odoo-makepot --addons-dir "
+        f"{'/tmp/odoo/auto/addons' if not repo else '/tmp/odoo/custom/src/' + repo}/"
+    )
+
+    cmd += " --msgmerge" if msgmerge else " --no-msgmerge"
+    cmd += " --no-fuzzy-matching" if not fuzzy_matching else " --fuzzy-matching"
+    cmd += (
+        " --purge-old-translations"
+        if purge_old_translations
+        else " --no-purge-old-translations"
+    )
+    if not _all and not repo:
+        cmd += f" -m {module}"
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(DOCKER_COMPOSE_CMD + " stop odoo")
+        c.run(
+            cmd,
+            env=UID_ENV,
+            pty=True,
+        )
+    glob = (
+        f"{PROJECT_ROOT}/odoo/custom/src/{'*' if not repo else repo}"
+        f"/{'*' if _all or repo else module}/i18n/"
+    )
+    new_files = iglob(f"{glob}/*.po*")
+    for new_file in new_files:
+        file_name = os.path.basename(new_file)
+        if file_name.endswith("~"):
+            os.remove(new_file)
+            continue
+        with open(new_file) as fd:
+            content = fd.read()
+        new_lines = []
+        for line in content.splitlines():
+            if remove_dates and (
+                line.startswith('"POT-Creation-Date')
+                or line.startswith('"PO-Revision-Date')
+            ):
+                continue
+            new_lines.append(line)
+        content = "\n".join(new_lines)
+        with open(new_file, "w") as fd:
+            fd.write(content.strip() + "\n")
+    _logger.info(".po[t] files updated")
+    precommit_cmd = (
+        f"pre-commit run --files {' '.join(iglob(f'{glob}/*.po*'))}--color=always"
+    )
+    if not repo and module:
+        for folder in iglob(f"{PROJECT_ROOT}/odoo/custom/src/*/*"):
+            if os.path.isdir(folder) and os.path.basename(folder) == module:
+                repo = os.path.basename(os.path.dirname(folder))
+                break
+    precommit_folder = (
+        str(PROJECT_ROOT) + f"/odoo/custom/src/{repo}" if repo != "private" else ""
+    )
+    with c.cd(str(precommit_folder)):
+        c.run(precommit_cmd)
 
 
 @task(
@@ -798,7 +950,7 @@ def _get_module_list(
         "extra": "Test all extra addons. Default: False",
         "private": "Test all private addons. Default: False",
         "enterprise": "Test all enterprise addons. Default: False",
-        "skip": "List of addons to skip. Default: []",
+        "skip": "Comma-separated list of modules to skip. Default: ''",
         "debugpy": "Whether or not to run tests in a VSCode debugging session. "
         "Default: False",
         "cur-file": "Path to the current file."
@@ -855,9 +1007,10 @@ def test(
         if not m_to_skip:
             continue
         if m_to_skip not in modules_list:
-            _logger.warn(
-                "%s not found in the list of addons to test: %s", (m_to_skip, modules)
+            _logger.warning(
+                "%s not found in the list of addons to test: %s", m_to_skip, modules
             )
+            continue
         modules_list.remove(m_to_skip)
     modules = ",".join(modules_list)
     odoo_command.append(modules)
@@ -865,13 +1018,13 @@ def test(
         # Limit tests to explicit list
         # Filter spec format (comma-separated)
         # [-][tag][/module][:class][.method]
-        odoo_command.extend(["--test-tags", "/" + ",/".join(modules_list)])
+        odoo_command.extend(["--test-tags", f"/{',/'.join(modules_list)}"])
     if debugpy:
         _test_in_debug_mode(c, odoo_command)
     else:
         cmd = [DOCKER_COMPOSE_CMD, "run", "--rm"]
         if db_filter:
-            cmd.extend(["-e", "DB_FILTER='%s'" % db_filter])
+            cmd.extend(["-e", f"DB_FILTER='{db_filter}'"])
         cmd.append("odoo")
         cmd.extend(odoo_command)
         with c.cd(str(PROJECT_ROOT)):
@@ -887,7 +1040,7 @@ def test(
 )
 def stop(c, purge=False):
     """Stop and (optionally) purge environment."""
-    cmd = DOCKER_COMPOSE_CMD + " down --remove-orphans"
+    cmd = f"{DOCKER_COMPOSE_CMD} down --remove-orphans"
     if purge:
         cmd += " --rmi local --volumes"
     with c.cd(str(PROJECT_ROOT)):
@@ -931,22 +1084,36 @@ def resetdb(
     else:
         modules = modules or "base"
     with c.cd(str(PROJECT_ROOT)):
-        c.run(DOCKER_COMPOSE_CMD + " stop odoo", pty=True)
-        _run = DOCKER_COMPOSE_CMD + " run --rm -l traefik.enable=false odoo"
+        c.run(f"{DOCKER_COMPOSE_CMD} stop odoo", pty=True)
+        _run = f"{DOCKER_COMPOSE_CMD} run --rm -l traefik.enable=false odoo"
         c.run(
             f"{_run} click-odoo-dropdb {dbname}",
             env=UID_ENV,
             warn=True,
             pty=True,
         )
-        c.run(
-            f"{_run} click-odoo-initdb -n {dbname} -m {modules} --no-demo",
-            env=UID_ENV,
-            pty=True,
-        )
+        lang = os.getenv("INITIAL_LANG")
+        lang_opt = f" --lang {lang}" if lang else ""
+        if ODOO_VERSION >= 19:
+            # Odoo 19: Registry.new(force_demo=...) removed → avoid click-odoo-initdb
+            # Use native Odoo CLI; --without-demo=all replaces force_demo=False
+            lang_opt19 = f" --load-language={lang}" if lang else ""
+            c.run(
+                f"{_run} odoo --stop-after-init -d {dbname} -i {modules}"
+                f"{lang_opt19} --without-demo=all",
+                env=UID_ENV,
+                pty=True,
+            )
+        else:
+            # Older versions keep using click-odoo-initdb
+            c.run(
+                f"{_run} click-odoo-initdb -n {dbname} -m {modules}{lang_opt}",
+                env=UID_ENV,
+                pty=True,
+            )
     if populate and ODOO_VERSION < 11:
         _logger.warn(
-            "Skipping populate task as it is not available in v%s" % ODOO_VERSION
+            f"Skipping populate task as it is not available in v{ODOO_VERSION}"
         )
         populate = False
     if populate:
@@ -965,7 +1132,7 @@ def preparedb(c):
         )
     with c.cd(str(PROJECT_ROOT)):
         c.run(
-            DOCKER_COMPOSE_CMD + " run --rm -l traefik.enable=false odoo preparedb",
+            f"{DOCKER_COMPOSE_CMD} run --rm -l traefik.enable=false odoo preparedb",
             env=UID_ENV,
             pty=True,
         )
@@ -974,7 +1141,7 @@ def preparedb(c):
 @task()
 def restart(c, quick=True):
     """Restart odoo container(s)."""
-    cmd = DOCKER_COMPOSE_CMD + " restart"
+    cmd = f"{DOCKER_COMPOSE_CMD} restart"
     if quick:
         cmd = f"{cmd} -t0"
     cmd = f"{cmd} odoo odoo_proxy"
@@ -991,7 +1158,7 @@ def restart(c, quick=True):
 )
 def logs(c, tail=10, follow=True, container=None):
     """Obtain last logs of current environment."""
-    cmd = DOCKER_COMPOSE_CMD + " logs"
+    cmd = f"{DOCKER_COMPOSE_CMD} logs"
     if follow:
         cmd += " -f"
     if tail:
@@ -1053,9 +1220,9 @@ def snapshot(
     if not destination_db:
         destination_db = f"{source_db}-{datetime.now().strftime('%Y_%m_%d-%H_%M')}"
     with c.cd(str(PROJECT_ROOT)):
-        cur_state = c.run(DOCKER_COMPOSE_CMD + " stop odoo db", pty=True).stdout
+        cur_state = c.run(f"{DOCKER_COMPOSE_CMD} stop odoo db", pty=True).stdout
         _logger.info("Snapshoting current %s DB to %s", (source_db, destination_db))
-        _run = DOCKER_COMPOSE_CMD + " run --rm -l traefik.enable=false odoo"
+        _run = f"{DOCKER_COMPOSE_CMD} run --rm -l traefik.enable=false odoo"
         c.run(
             f"{_run} click-odoo-copydb {source_db} {destination_db}",
             env=UID_ENV,
@@ -1063,7 +1230,7 @@ def snapshot(
         )
         if "Stopping" in cur_state:
             # Restart services if they were previously active
-            c.run(DOCKER_COMPOSE_CMD + " start odoo db", pty=True)
+            c.run(f"{DOCKER_COMPOSE_CMD} start odoo db", pty=True)
 
 
 @task(
@@ -1084,11 +1251,11 @@ def restore_snapshot(
     Uses click-odoo-copydb behind the scenes to restore a DB snapshot.
     """
     with c.cd(str(PROJECT_ROOT)):
-        cur_state = c.run(DOCKER_COMPOSE_CMD + " stop odoo db", pty=True).stdout
+        cur_state = c.run(f"{DOCKER_COMPOSE_CMD} stop odoo db", pty=True).stdout
         if not snapshot_name:
             # List DBs
             res = c.run(
-                DOCKER_COMPOSE_CMD + " run --rm -e LOG_LEVEL=WARNING odoo psql -tc"
+                f"{DOCKER_COMPOSE_CMD} run --rm -e LOG_LEVEL=WARNING odoo psql -tc"
                 " 'SELECT datname FROM pg_database;'",
                 env=UID_ENV,
                 hide="stdout",
@@ -1101,7 +1268,7 @@ def restore_snapshot(
                 db_name = db.lstrip()
                 try:
                     db_date = datetime.strptime(
-                        db_name.lstrip(destination_db + "-"), "%Y_%m_%d-%H_%M"
+                        db_name.lstrip(f"{destination_db}-"), "%Y_%m_%d-%H_%M"
                     )
                     db_list.append((db_name, db_date))
                 except ValueError:
@@ -1109,10 +1276,10 @@ def restore_snapshot(
             snapshot_name = max(db_list, key=lambda x: x[1])[0]
             if not snapshot_name:
                 raise exceptions.PlatformError(
-                    "No snapshot found for destination_db %s" % destination_db
+                    "No snapshot found for destination_db %s" % destination_db  # noqa: UP031
                 )
         _logger.info("Restoring snapshot %s to %s", (snapshot_name, destination_db))
-        _run = DOCKER_COMPOSE_CMD + " run --rm -l traefik.enable=false odoo"
+        _run = f"{DOCKER_COMPOSE_CMD} run --rm -l traefik.enable=false odoo"
         c.run(
             f"{_run} click-odoo-dropdb {destination_db}",
             env=UID_ENV,
@@ -1125,8 +1292,7 @@ def restore_snapshot(
             pty=True,
         )
         if "Stopping" in cur_state:
-            # Restart services if they were previously active
-            c.run(DOCKER_COMPOSE_CMD + " start odoo db", pty=True)
+            c.run(f"{DOCKER_COMPOSE_CMD} start odoo db", pty=True)
 
 
 @task(
@@ -1506,3 +1672,52 @@ def update_pot(
                                 _logger.error("Failed to update %s: %s", po_file, e)
 
         _logger.info("Total PO files updated: %d", po_files_updated)
+
+
+@task(
+    help={
+        "module_name": "Name of the module to scaffold.",
+        "path": "Path where to create the module. Default: current directory.",
+    },
+)
+def scaffold(
+    c,
+    module_name,
+    path=None,
+):
+    """Scaffold a new Odoo module.
+
+    Creates a new Odoo module with the basic structure using odoo scaffold command.
+    """
+    if not module_name:
+        raise exceptions.ParseError(
+            msg="Module name is required. See --help for details."
+        )
+
+    # Use current directory if no path specified, otherwise use the specified path
+    target_path = path or str(Path.cwd())
+
+    # Convert the target path to be relative to PROJECT_ROOT for the container
+    target_path_abs = Path(target_path).resolve()
+    if not target_path_abs.is_relative_to(PROJECT_ROOT):
+        raise exceptions.ParseError(
+            msg=f"Path '{target_path}' must be within the project directory."
+        )
+
+    # Convert to container path
+    container_path = str(target_path_abs.relative_to(PROJECT_ROOT))
+    if container_path == ".":
+        container_path = ""
+
+    cmd = (
+        f"{DOCKER_COMPOSE_CMD} run --rm -v "
+        f'"{PROJECT_ROOT}:/tmp/project:rw" '
+        f"odoo odoo scaffold {module_name} /tmp/project/{container_path}"
+    )
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(
+            cmd,
+            env=UID_ENV,
+            pty=True,
+        )

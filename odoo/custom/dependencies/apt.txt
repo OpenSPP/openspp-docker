@@ -1,0 +1,5 @@
+libgdal32
+libproj25
+proj-data
+proj-bin
+gdal-bin

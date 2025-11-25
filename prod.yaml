@@ -6,6 +6,7 @@ services:
       file: common.yaml
       service: odoo
     restart: unless-stopped
+    hostname: demo.openspp.org
     env_file:
       - .docker/odoo.env
       - .docker/db-access.env
@@ -13,33 +14,120 @@ services:
       DB_FILTER: "^prod"
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-prod}"
       INITIAL_LANG: "en_US"
+      LIST_DB: "false"
+      ODOO_BUS_PUBLIC_SAMESITE_WS: 1
+      PGHOST: OpenSPP-19-0-prod-db
     depends_on:
       - db
     networks:
       default:
+      inverseproxy_shared:
     labels:
-      doodba.domain.main: ""
+      doodba.domain.main: "demo.openspp.org"
+      traefik.enable: "true"
+      traefik.domain: "demo.openspp.org"
+      traefik.forbiddenCrawlers-0.frontend.headers.customResponseHeaders:
+        "X-Robots-Tag:noindex, nofollow"
+      traefik.forbiddenCrawlers-0.frontend.rule: Host(`demo.openspp.org`);Path:/{anything:.*}
+      traefik.longpolling-0.frontend.rule: Host(`demo.openspp.org`);Path:/websocket,/websocket/{anything:.*}
+      traefik.longpolling-0.port: 8072
+      traefik.http.middlewares.OpenSPP-19-0-prod-buffering.buffering.retryExpression:
+        IsNetworkError() && Attempts() < 5
+      traefik.http.middlewares.OpenSPP-19-0-prod-compress.compress: "true"
+      traefik.http.middlewares.OpenSPP-19-0-prod-forbid-crawlers.headers.customResponseHeaders.X-Robots-Tag:
+        "noindex, nofollow"
+      traefik.http.middlewares.OpenSPP-19-0-prod-addSTS.headers.forceSTSHeader: "true"
+      traefik.http.middlewares.OpenSPP-19-0-prod-forceSecure.redirectScheme.scheme: https
+      traefik.http.middlewares.OpenSPP-19-0-prod-forceSecure.redirectScheme.permanent: "true"
+      traefik.http.middlewares.OpenSPP-19-0-prod-override-ws-headers.headers.customRequestHeaders.X-Forwarded-Proto: "https"
+      traefik.http.services.OpenSPP-19-0-prod-main.loadbalancer.server.port: 8069
+      traefik.http.services.OpenSPP-19-0-prod-longpolling.loadbalancer.server.port: 8072
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-0.rule:
+        Host(`demo.openspp.org`) && Path(`/websocket`)
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-0.service: OpenSPP-19-0-prod-longpolling
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-0.middlewares:
+        OpenSPP-19-0-prod-addSTS, OpenSPP-19-0-prod-forceSecure,
+        OpenSPP-19-0-prod-override-ws-headers
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-0.priority: 20
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-secure-0.rule:
+        Host(`demo.openspp.org`) && Path(`/websocket`)
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-secure-0.service: OpenSPP-19-0-prod-longpolling
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-secure-0.middlewares:
+        OpenSPP-19-0-prod-addSTS, OpenSPP-19-0-prod-forceSecure,
+        OpenSPP-19-0-prod-override-ws-headers
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-secure-0.priority: 20
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-19-0-prod-longpolling-secure-0.tls.certResolver: letsencrypt
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-0.rule:
+        Host(`demo.openspp.org`) && (PathPrefix(`/`))
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-0.service: OpenSPP-19-0-prod-main
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-0.middlewares:
+        OpenSPP-19-0-prod-addSTS, OpenSPP-19-0-prod-buffering,
+        OpenSPP-19-0-prod-compress, OpenSPP-19-0-prod-forbid-crawlers,
+        OpenSPP-19-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-0.priority: 10
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-secure-0.rule:
+        Host(`demo.openspp.org`) && (PathPrefix(`/`))
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-secure-0.service: OpenSPP-19-0-prod-main
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-secure-0.middlewares:
+        OpenSPP-19-0-prod-addSTS, OpenSPP-19-0-prod-buffering,
+        OpenSPP-19-0-prod-compress, OpenSPP-19-0-prod-forbid-crawlers,
+        OpenSPP-19-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-secure-0.priority: 10
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-19-0-prod-forbiddenCrawlers-secure-0.tls.certResolver: letsencrypt
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-0.rule:
+        Host(`demo.openspp.org`) && (PathPrefix(`/web/image/website/`) ||
+        Path(`/web/image/website`))
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-0.service: OpenSPP-19-0-prod-main
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-0.middlewares:
+        OpenSPP-19-0-prod-addSTS, OpenSPP-19-0-prod-buffering,
+        OpenSPP-19-0-prod-compress, OpenSPP-19-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-0.priority: 100
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.rule:
+        Host(`demo.openspp.org`) && (PathPrefix(`/web/image/website/`) ||
+        Path(`/web/image/website`))
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.service: OpenSPP-19-0-prod-main
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.middlewares:
+        OpenSPP-19-0-prod-addSTS, OpenSPP-19-0-prod-buffering,
+        OpenSPP-19-0-prod-compress, OpenSPP-19-0-prod-forceSecure
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.priority: 100
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.tls.certResolver: letsencrypt
 
   db:
     extends:
       file: common.yaml
       service: db
+    environment:
+      DB_HOST: OpenSPP-19-0-prod-db
     env_file:
       - .docker/db-creation.env
     restart: unless-stopped
     networks:
       default:
-      inverseproxy_shared:
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: "inverseproxy_shared"
-      traefik.tcp.services.openspp-17-0-prod-database.loadbalancer.server.port: 5432
+        aliases:
+          - "OpenSPP-19-0-prod-db"
+
+  backup:
+    extends:
+      file: common.yaml
+      service: backup
+    env_file:
+      - .docker/backup.env
+      - .docker/db-access.env
+    restart: unless-stopped
+    depends_on:
+      - db
 
 networks:
   default:
     driver_opts:
       encrypted: 1
+  inverseproxy_shared:
+    external: true
 
 volumes:
+  backup_cache:
   filestore:
   db:

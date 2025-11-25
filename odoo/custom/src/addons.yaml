@@ -1,22 +1,23 @@
-openg2p_registry:
-  - "*"
-openg2p_program:
-  - "*"
-openg2p_rest_framework:
-  - "fastapi"
-  - "extendable"
-  - "extendable_fastapi"
+# OpenSPP / OpenG2P addons temporarily disabled for plain Odoo 19 smoke tests
+# openg2p_registry:
+#   - "*"
+# openg2p_program:
+#   - "*"
+# openg2p_rest_framework:
+#   - "fastapi"
+#   - "extendable"
+#   - "extendable_fastapi"
 openspp_modules:
   - "*"
-server-tools:
-  - base_multi_image
-server-ux:
-  - mass_editing
-queue:
-  - queue_job
+# server-tools:
+#   - base_multi_image
+# server-ux:
+#   - mass_editing
+# queue:
+#   - queue_job
 muk_addons:
   - "*"
-server-backend:
-  - "*"
-web-api:
-  - endpoint_route_handler
+# server-backend:
+#   - "*"
+# web-api:
+#   - endpoint_route_handler

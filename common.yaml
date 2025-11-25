@@ -2,27 +2,27 @@ version: "2.4"
 
 services:
   odoo:
-    platform: linux/amd64
+    image: openspp/openspp:19.0
     build:
       context: ./odoo
       args:
-        DB_VERSION: "15"
-        ODOO_VERSION: "17.0"
+        DB_VERSION: "18"
+        ODOO_VERSION: "19.0"
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
     environment:
       EMAIL_FROM: "contact@openspp.org"
       PGDATABASE: &dbname prod
       PGUSER: &dbuser "odoo"
-      PROXY_MODE: "false"
-      LIST_DB: "true"
+      PROXY_MODE: "true"
+      PYTHONWARNINGS: "ignore::DeprecationWarning:imghdr"
     tty: true
     volumes:
       - filestore:/var/lib/odoo:z
 
   db:
     platform: linux/amd64
-    image: ghcr.io/openspp/postgis-autoconf:15-alpine
+    image: ghcr.io/openspp/postgres-autoconf:18-alpine
     shm_size: 4gb
     environment:
       POSTGRES_DB: *dbname
@@ -49,3 +49,18 @@ services:
   smtpfake:
     platform: linux/amd64
     image: docker.io/mailhog/mailhog
+
+  backup:
+    image: ghcr.io/tecnativa/docker-duplicity-postgres-s3:latest
+    hostname: backup.demo.openspp.org
+    init: true
+    environment:
+      DB_VERSION: "18"
+      DBS_TO_INCLUDE: "^prod"
+      DST: "boto3+s3://example_bucket"
+      PGDATABASE: *dbname
+      PGUSER: *dbuser
+      TZ: "UTC"
+    volumes:
+      - backup_cache:/root:z
+      - filestore:/mnt/backup/src/odoo:z

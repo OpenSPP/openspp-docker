@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v6.0.1
+_commit: v9.0.5
 _src_path: gh:Tecnativa/doodba-copier-template
 backup_deletion: false
 backup_dst: boto3+s3://example_bucket
@@ -21,7 +21,7 @@ odoo_listdb: false
 odoo_listdb_staging: false
 odoo_oci_image: openspp/openspp
 odoo_proxy: traefik
-odoo_version: 17.0
+odoo_version: 19.0
 paths_with_crawlers:
 - /web/image/website
 paths_without_crawlers:
@@ -29,7 +29,7 @@ paths_without_crawlers:
 postgres_dbname: prod
 postgres_exposed: false
 postgres_username: odoo
-postgres_version: '15'
+postgres_version: '17'
 project_author: OpenSPP
 project_license: LGPL-3.0-or-later
 project_name: OpenSPP

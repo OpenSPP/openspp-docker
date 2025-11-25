@@ -10,30 +10,87 @@ services:
       - .docker/db-access.env
     environment:
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-test}"
+      LIST_DB: "false"
+      ODOO_BUS_PUBLIC_SAMESITE_WS: 1
       # To install demo data export DOODBA_WITHOUT_DEMO=false
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-all}"
       SMTP_PORT: "1025"
       SMTP_SERVER: smtplocal
+      # Just in case you use queue_job
+      ODOO_QUEUE_JOB_CHANNELS: "root:1"
+      PGHOST: OpenSPP-19-0-test-db
     restart: unless-stopped
+    hostname: demo-test.openspp.org
     depends_on:
       - db
       - smtp
     networks:
       default:
       globalwhitelist_shared:
+      inverseproxy_shared:
     labels:
-      doodba.domain.main: ""
+      doodba.domain.main: "demo-test.openspp.org"
+      traefik.enable: "true"
+      traefik.domain: "demo-test.openspp.org"
+      traefik.forbiddenCrawlers-0.frontend.headers.customResponseHeaders:
+        "X-Robots-Tag:noindex, nofollow"
+      traefik.forbiddenCrawlers-0.frontend.rule: Host:demo-test.openspp.org;Path:/{anything:.*}
+      traefik.longpolling-0.frontend.rule: Host:demo-test.openspp.org;Path:/websocket,/websocket/{anything:.*}
+      traefik.longpolling-0.port: 8072
+      traefik.http.middlewares.OpenSPP-19-0-test-override-ws-headers.headers.customRequestHeaders.X-Forwarded-Proto: "https"
+      traefik.http.services.OpenSPP-19-0-test-main.loadbalancer.server.port: 8069
+      traefik.http.services.OpenSPP-19-0-test-longpolling.loadbalancer.server.port: 8072
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-0.rule:
+        Host(`demo-test.openspp.org`) && Path(`/websocket`)
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-0.service: OpenSPP-19-0-test-longpolling
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-0.middlewares:
+        OpenSPP-19-0-test-addSTS, OpenSPP-19-0-test-forceSecure,
+        OpenSPP-19-0-test-override-ws-headers
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-0.priority: 20
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-secure-0.rule:
+        Host(`demo-test.openspp.org`) && Path(`/websocket`)
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-secure-0.service: OpenSPP-19-0-test-longpolling
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-secure-0.middlewares:
+        OpenSPP-19-0-test-addSTS, OpenSPP-19-0-test-forceSecure,
+        OpenSPP-19-0-test-override-ws-headers
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-secure-0.priority: 20
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-19-0-test-longpolling-secure-0.tls.certResolver: letsencrypt
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-0.rule:
+        Host(`demo-test.openspp.org`) && (PathPrefix(`/`))
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-0.service: OpenSPP-19-0-test-main
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-0.middlewares:
+        OpenSPP-19-0-test-addSTS, OpenSPP-19-0-test-buffering,
+        OpenSPP-19-0-test-compress, OpenSPP-19-0-test-forbid-crawlers,
+        OpenSPP-19-0-test-forceSecure
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-0.priority: 10
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-secure-0.rule:
+        Host(`demo-test.openspp.org`) && (PathPrefix(`/`))
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-secure-0.service: OpenSPP-19-0-test-main
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-secure-0.middlewares:
+        OpenSPP-19-0-test-addSTS, OpenSPP-19-0-test-buffering,
+        OpenSPP-19-0-test-compress, OpenSPP-19-0-test-forbid-crawlers,
+        OpenSPP-19-0-test-forceSecure
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-secure-0.priority: 10
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-19-0-test-forbiddenCrawlers-secure-0.tls.certResolver: letsencrypt
     command:
       - odoo
-      - --workers=2
+      - --workers=3
       - --max-cron-threads=1
 
   db:
     extends:
       file: common.yaml
       service: db
+    environment:
+      DB_HOST: OpenSPP-19-0-test-db
     env_file:
       - .docker/db-creation.env
+    networks:
+      default:
+        aliases:
+          - "OpenSPP-19-0-test-db"
     restart: unless-stopped
 
   smtp:
@@ -45,8 +102,41 @@ services:
       default:
         aliases:
           - smtplocal
+      inverseproxy_shared:
     labels:
-      doodba.domain.main: ""
+      doodba.domain.main: "demo-test.openspp.org"
+      traefik.docker.network: "inverseproxy_shared"
+      traefik.enable: "true"
+      traefik.frontend.passHostHeader: "true"
+      traefik.mailhog-0.frontend.rule: Host:demo-test.openspp.org;PathPrefixStrip:/smtpfake/
+      traefik.mailhog-0.port: 8025
+      # Mailhog service
+      traefik.http.middlewares.OpenSPP-19-0-test-mailhog-stripprefix.stripPrefix.prefixes: /smtpfake/
+      traefik.http.services.OpenSPP-19-0-test-mailhog.loadbalancer.server.port: 8025
+      traefik.http.middlewares.OpenSPP-19-0-test-buffering.buffering.retryExpression:
+        IsNetworkError() && Attempts() < 5
+      traefik.http.middlewares.OpenSPP-19-0-test-compress.compress: "true"
+      traefik.http.middlewares.OpenSPP-19-0-test-forbid-crawlers.headers.customResponseHeaders.X-Robots-Tag:
+        "noindex, nofollow"
+      traefik.http.middlewares.OpenSPP-19-0-test-addSTS.headers.forceSTSHeader: "true"
+      traefik.http.middlewares.OpenSPP-19-0-test-forceSecure.redirectScheme.scheme: https
+      traefik.http.middlewares.OpenSPP-19-0-test-forceSecure.redirectScheme.permanent: "true"
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-0.rule:
+        Host(`demo-test.openspp.org`) && PathPrefix(`/smtpfake/`)
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-0.service: OpenSPP-19-0-test-mailhog
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-0.middlewares:
+        OpenSPP-19-0-test-addSTS, OpenSPP-19-0-test-buffering,
+        OpenSPP-19-0-test-compress, OpenSPP-19-0-test-forbid-crawlers,
+        OpenSPP-19-0-test-forceSecure, OpenSPP-19-0-test-mailhog-stripprefix
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-secure-0.rule:
+        Host(`demo-test.openspp.org`) && PathPrefix(`/smtpfake/`)
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-secure-0.service: OpenSPP-19-0-test-mailhog
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-secure-0.middlewares:
+        OpenSPP-19-0-test-addSTS, OpenSPP-19-0-test-buffering,
+        OpenSPP-19-0-test-compress, OpenSPP-19-0-test-forbid-crawlers,
+        OpenSPP-19-0-test-forceSecure, OpenSPP-19-0-test-mailhog-stripprefix
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-secure-0.tls: "true"
+      traefik.http.routers.OpenSPP-19-0-test-mailhog-secure-0.tls.certResolver: letsencrypt
     volumes:
       - "smtpconf:/etc/mailhog:ro,z"
     entrypoint: [sh, -c]
@@ -60,6 +150,9 @@ networks:
       encrypted: 1
 
   globalwhitelist_shared:
+    external: true
+
+  inverseproxy_shared:
     external: true
 
 volumes:

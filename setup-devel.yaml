@@ -9,14 +9,13 @@
 
 services:
   odoo:
-    privileged: true
+    image: openspp/openspp:19.0
     build:
       context: ./odoo
       args:
         AGGREGATE: "false"
         DEPTH_DEFAULT: 100
-        ODOO_VERSION: "17.0"
-        ODOO_SOURCE: "odoo/odoo"
+        ODOO_VERSION: "19.0"
         PYTHONOPTIMIZE: ""
         PIP_INSTALL_ODOO: "false"
         CLEAN: "false"
