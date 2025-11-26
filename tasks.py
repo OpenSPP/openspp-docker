@@ -943,6 +943,47 @@ def _get_module_list(
     return module_list
 
 
+def _expand_modules_with_deps(modules_csv):
+    """Return CSV of modules plus all their dependencies using manifestoo.
+
+    Requires ``manifestoo`` CLI installed on the host (pip install manifestoo-core).
+    Falls back to the original list if manifestoo is unavailable.
+    """
+
+    if not modules_csv:
+        return modules_csv
+
+    manifestoo_cmd = shutil.which("manifestoo")
+    if not manifestoo_cmd:
+        _logger.warning("manifestoo not found; skipping dependency expansion")
+        return modules_csv
+
+    addons_dirs = [
+        SRC_PATH / "openspp_modules",
+        SRC_PATH / "odoo" / "addons",
+    ]
+    cmd = [
+        manifestoo_cmd,
+        "--select-addons-dir",
+        str(addons_dirs[0]),
+        "--select-addons-dir",
+        str(addons_dirs[1]),
+        "select",
+        "--include-deps",
+        modules_csv,
+        "--separator",
+        ",",
+    ]
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        expanded = result.stdout.strip().splitlines()[-1]
+        _logger.info("Expanded modules with dependencies: %s", expanded)
+        return expanded
+    except subprocess.CalledProcessError as exc:
+        _logger.warning("manifestoo failed (%s); using original list", exc)
+        return modules_csv
+
+
 @task(
     help={
         "modules": "Comma-separated list of modules to test.",
@@ -972,6 +1013,7 @@ def test(
     cur_file=None,
     mode="init",
     db_filter="^devel$",
+    with_deps=False,
 ):
     """Run Odoo tests
 
@@ -1013,6 +1055,9 @@ def test(
             continue
         modules_list.remove(m_to_skip)
     modules = ",".join(modules_list)
+    if with_deps:
+        modules = _expand_modules_with_deps(modules)
+        modules_list = modules.split(",") if modules else []
     odoo_command.append(modules)
     if ODOO_VERSION >= 12:
         # Limit tests to explicit list
