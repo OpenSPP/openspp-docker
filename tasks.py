@@ -954,28 +954,54 @@ def _expand_modules_with_deps(modules_csv):
         return modules_csv
 
     manifestoo_cmd = shutil.which("manifestoo")
+    use_docker_manifestoo = False
     if not manifestoo_cmd:
-        _logger.warning("manifestoo not found; skipping dependency expansion")
-        return modules_csv
+        # Try the doodba odoo container, which ships with manifestoo
+        use_docker_manifestoo = True
 
     addons_dirs = [
         SRC_PATH / "openspp_modules",
         SRC_PATH / "odoo" / "addons",
     ]
-    cmd = [
-        manifestoo_cmd,
-        "--select-addons-dir",
-        str(addons_dirs[0]),
-        "--select-addons-dir",
-        str(addons_dirs[1]),
-        "select",
-        "--include-deps",
-        modules_csv,
-        "--separator",
-        ",",
-    ]
+    if use_docker_manifestoo:
+        cmd = [
+            *DOCKER_COMPOSE_CMD.split(),
+            "run",
+            "--rm",
+            "odoo",
+            "manifestoo",
+            "--select-addons-dir",
+            "/opt/odoo/custom/src/openspp_modules",
+            "--select-addons-dir",
+            "/opt/odoo/custom/src/odoo/addons",
+            "select",
+            "--include-deps",
+            modules_csv,
+            "--separator",
+            ",",
+        ]
+    else:
+        cmd = [
+            manifestoo_cmd,
+            "--select-addons-dir",
+            str(addons_dirs[0]),
+            "--select-addons-dir",
+            str(addons_dirs[1]),
+            "select",
+            "--include-deps",
+            modules_csv,
+            "--separator",
+            ",",
+        ]
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            cwd=str(PROJECT_ROOT),
+            env=UID_ENV if use_docker_manifestoo else None,
+        )
         expanded = result.stdout.strip().splitlines()[-1]
         _logger.info("Expanded modules with dependencies: %s", expanded)
         return expanded
