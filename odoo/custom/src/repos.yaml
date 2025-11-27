@@ -50,9 +50,9 @@ openspp_modules:
     depth: $DEPTH_DEFAULT
   remotes:
     openspp: https://github.com/OpenSPP/openspp-clean-jeremi.git
-  target: openspp claude/continue-odoo-19-migration-01Kznt8SgPk9ZLDmN4UrPdzL
+  target: openspp 19.0
   merges:
-    - openspp claude/continue-odoo-19-migration-01Kznt8SgPk9ZLDmN4UrPdzL
+    - openspp 19.0
 
 muk_addons:
   remotes:
@@ -95,3 +95,10 @@ web-api:
   target: OCA 19.0
   merges:
     - OCA 19.0
+
+dswd-modules:
+  remotes:
+    NL: git@github.com:newlogic/dswd-4ps-dp-openspp-module.git
+  target: NL 17.0
+  merges:
+    - NL 17.0

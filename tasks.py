@@ -943,6 +943,36 @@ def _get_module_list(
     return module_list
 
 
+def _list_spp_modules():
+    """Return sorted list of addon folder names starting with 'spp_'."""
+    base = SRC_PATH / "openspp_modules"
+    if not base.exists():
+        return []
+    modules = []
+    for addon in base.iterdir():
+        if (
+            addon.is_dir()
+            and addon.name.startswith("spp_")
+            and (
+                (addon / "__manifest__.py").is_file()
+                or (addon / "__openerp__.py").is_file()
+            )
+        ):
+            modules.append(addon.name)
+    return sorted(modules)
+
+
+def _spp_dependency_closure(modules_csv):
+    """Return CSV of spp_* modules in the transitive deps of modules_csv."""
+    if not modules_csv:
+        return ""
+
+    deps_csv = _expand_modules_with_deps(modules_csv)
+    deps = [m.strip() for m in deps_csv.split(",") if m.strip()]
+    spp_deps = sorted({m for m in deps if m.startswith("spp_")})
+    return ",".join(spp_deps)
+
+
 def _expand_modules_with_deps(modules_csv):
     """Return CSV of modules plus all their dependencies using manifestoo.
 
@@ -963,36 +993,38 @@ def _expand_modules_with_deps(modules_csv):
         SRC_PATH / "openspp_modules",
         SRC_PATH / "odoo" / "addons",
     ]
+
+    addons_path = (
+        "/opt/odoo/custom/src/openspp_modules,/opt/odoo/custom/src/odoo/addons"
+        if use_docker_manifestoo
+        else f"{addons_dirs[0]},{addons_dirs[1]}"
+    )
+    base_cmd = [
+        "manifestoo",
+        "--odoo-series",
+        "19.0",
+        "--addons-path",
+        addons_path,
+        "--select-include",
+        modules_csv,
+        "list-depends",
+        "--transitive",
+        "--include-selected",
+        "--separator",
+        ",",
+        "--ignore-missing",
+    ]
+
     if use_docker_manifestoo:
         cmd = [
             *DOCKER_COMPOSE_CMD.split(),
             "run",
             "--rm",
             "odoo",
-            "manifestoo",
-            "--select-addons-dir",
-            "/opt/odoo/custom/src/openspp_modules",
-            "--select-addons-dir",
-            "/opt/odoo/custom/src/odoo/addons",
-            "select",
-            "--include-deps",
-            modules_csv,
-            "--separator",
-            ",",
+            *base_cmd,
         ]
     else:
-        cmd = [
-            manifestoo_cmd,
-            "--select-addons-dir",
-            str(addons_dirs[0]),
-            "--select-addons-dir",
-            str(addons_dirs[1]),
-            "select",
-            "--include-deps",
-            modules_csv,
-            "--separator",
-            ",",
-        ]
+        cmd = [manifestoo_cmd, *base_cmd[1:]]
     try:
         result = subprocess.run(
             cmd,
@@ -1071,9 +1103,8 @@ def test(
         )
     # Skip test in some modules
     modules_list = modules.split(",")
-    for m_to_skip in skip.split(","):
-        if not m_to_skip:
-            continue
+    skip_list = [m for m in skip.split(",") if m]
+    for m_to_skip in skip_list:
         if m_to_skip not in modules_list:
             _logger.warning(
                 "%s not found in the list of addons to test: %s", m_to_skip, modules
@@ -1084,6 +1115,10 @@ def test(
     if with_deps:
         modules = _expand_modules_with_deps(modules)
         modules_list = modules.split(",") if modules else []
+        # Re-apply skips after dependency expansion (to avoid running tests from
+        # modules pulled in as dependencies like queue_job).
+        modules_list = [m for m in modules_list if m not in skip_list]
+        modules = ",".join(modules_list)
     odoo_command.append(modules)
     if ODOO_VERSION >= 12:
         # Limit tests to explicit list
@@ -1104,6 +1139,81 @@ def test(
                 env=UID_ENV,
                 pty=True,
             )
+
+
+@task(
+    help={
+        "skip": "Comma-separated list of modules to skip. Default: 'queue_job'.",
+        "with_deps": "Expand modules with dependencies before running. Default: True.",
+        "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
+        "db_filter": "DB_FILTER regex to pass to the test container. Default: '^devel$'",
+        "debugpy": "Run tests with debugpy enabled. Default: False",
+    }
+)
+def test_spp(
+    c,
+    skip="queue_job",
+    with_deps=True,
+    mode="init",
+    db_filter="^devel$",
+    debugpy=False,
+):
+    """Run tests for all spp_* addons found in openspp_modules."""
+    modules_list = _list_spp_modules()
+    if not modules_list:
+        raise exceptions.ParseError(
+            msg="No spp_* addons found under odoo/custom/src/openspp_modules"
+        )
+    modules = ",".join(modules_list)
+    _logger.info("Testing spp addons: %s", modules)
+    test(
+        c,
+        modules=modules,
+        skip=skip,
+        with_deps=with_deps,
+        mode=mode,
+        db_filter=db_filter,
+        debugpy=debugpy,
+    )
+
+
+@task(
+    help={
+        "modules": "Comma-separated root modules to analyze. Default: 'spp_mis_demo'.",
+        "skip": "Comma-separated list of modules to skip. Default: 'queue_job'.",
+        "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
+        "db_filter": "DB_FILTER regex to pass to the test container. Default: '^devel$'",
+        "debugpy": "Run tests with debugpy enabled. Default: False",
+    }
+)
+def test_spp_deps(
+    c,
+    modules="spp_mis_demo",
+    skip="queue_job",
+    mode="init",
+    db_filter="^devel$",
+    debugpy=False,
+):
+    """Run tests for spp_* modules in the dependency closure of given modules."""
+    spp_modules_csv = _spp_dependency_closure(modules)
+    if not spp_modules_csv:
+        raise exceptions.ParseError(
+            msg=f"No spp_* dependencies found for modules: {modules}"
+        )
+    # Safety: enforce spp_* filter even if closure contains extra deps
+    modules_list = [m for m in spp_modules_csv.split(",") if m.startswith("spp_")]
+    modules_list = sorted(set(modules_list))
+    modules_csv = ",".join(modules_list)
+    _logger.info("Testing spp dependency addons: %s", modules_csv)
+    test(
+        c,
+        modules=modules_csv,
+        skip=skip,
+        with_deps=False,
+        mode=mode,
+        db_filter=db_filter,
+        debugpy=debugpy,
+    )
 
 
 @task(

@@ -63,3 +63,4 @@ pandas
 Fiona
 matplotlib
 geopandas
+celpy
