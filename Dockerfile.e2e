@@ -1,0 +1,12 @@
+# Playwright runner image with OpenSPP E2E dependencies preinstalled
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
+
+WORKDIR /workspace/openspp/odoo/custom/src/openspp_modules/e2e
+
+# Install pinned deps (source code comes from bind mount)
+COPY odoo/custom/src/openspp_modules/e2e/package*.json ./
+COPY odoo/custom/src/openspp_modules/e2e/package-lock.json ./
+RUN npm ci --registry=https://registry.npmjs.org
+
+# Keep container running by default; commands are executed via docker compose exec
+CMD ["tail", "-f", "/dev/null"]

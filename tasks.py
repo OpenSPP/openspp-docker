@@ -7,6 +7,7 @@ Contains common helpers to develop using this child project.
 
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -59,6 +60,9 @@ DOCKER_COMPOSE_CMD = (
     f"{shutil.which('docker')} compose"
     if docker_compose_v2
     else shutil.which("docker-compose")
+)
+E2E_COMPOSE_FILES = (
+    f"{DOCKER_COMPOSE_CMD} -f docker-compose.yml -f docker-compose.e2e.yml"
 )
 
 _logger = getLogger(__name__)
@@ -905,6 +909,113 @@ def _test_in_debug_mode(c, odoo_command):
         time.sleep(SERVICES_WAIT_TIME)
 
 
+def _sanitize_filename(fragment: str) -> str:
+    """Return a filesystem-friendly fragment for log/xunit filenames."""
+
+    if not fragment:
+        return "odoo-tests"
+    fragment = fragment.replace(",", "-")
+    fragment = re.sub(r"[^A-Za-z0-9_.-]", "_", fragment)
+    return fragment[:80]  # keep names readable while avoiding path issues
+
+
+def _summarize_test_results(log_path: Path):
+    """Return a compact summary parsed from the log."""
+
+    summary_lines = []
+
+    if not log_path.exists():
+        summary_lines.append(f"Log not found; summary skipped: {log_path}")
+        return summary_lines
+
+    try:
+        lines = log_path.read_text(errors="ignore").splitlines()
+    except OSError as exc:  # pragma: no cover - defensive
+        summary_lines.append(f"Could not read log {log_path}: {exc}")
+        return summary_lines
+
+    log_text = "\n".join(lines)
+
+    tests = None
+    failures = errors = skipped = 0
+    tests_not_run = False
+
+    ran = re.search(r"Ran (\d+) tests? in", log_text)
+    if ran:
+        tests = int(ran.group(1))
+    else:
+        odoo_line = re.search(
+            r"(\d+) failed, (\d+) error\(s\) of (\d+) tests", log_text
+        )
+        if odoo_line:
+            failures = int(odoo_line.group(1))
+            errors = int(odoo_line.group(2))
+            tests = int(odoo_line.group(3))
+            if tests == 0:
+                tests_not_run = True
+        else:
+            stats_total = 0
+            for line in lines:
+                m = re.search(r"odoo\.tests\.stats: .*?: (\d+) tests", line)
+                if m:
+                    stats_total += int(m.group(1))
+            if stats_total:
+                tests = stats_total
+
+    fail_summary = re.search(
+        r"FAILED \(failures=(\d+), errors=(\d+)(?:, skipped=(\d+))?", log_text
+    )
+    ok_summary = re.search(r"^OK(?: \(([^)]*)\))?$", log_text, re.MULTILINE)
+
+    if fail_summary:
+        failures = int(fail_summary.group(1))
+        errors = int(fail_summary.group(2))
+        skipped = int(fail_summary.group(3) or 0)
+    elif ok_summary:
+        details = ok_summary.group(1) or ""
+        skipped_match = re.search(r"skipped=(\d+)", details)
+        skipped = int(skipped_match.group(1)) if skipped_match else 0
+    # else leave defaults; some failures may prevent summary printing
+
+    if tests is not None:
+        passed = tests - failures - errors - skipped
+    else:
+        passed = None
+
+    failing = []
+    for idx, line in enumerate(lines, start=1):
+        m = re.match(r"^(FAIL|ERROR):\s+(.*)$", line)
+        if m:
+            failing.append((m.group(2).strip(), idx))
+
+    summary_parts = []
+    if tests is not None:
+        summary_parts.append(f"{tests} total")
+    if passed is not None:
+        summary_parts.append(f"{passed} passed")
+    summary_parts.append(f"{failures} failed")
+    summary_parts.append(f"{errors} errors")
+    summary_parts.append(f"{skipped} skipped")
+
+    summary_lines.append("Test summary: " + " | ".join(summary_parts))
+    if tests_not_run or tests == 0:
+        summary_lines.append(
+            "No tests collected or executed. Install may have failed or no tags matched; see log for details."
+        )
+    elif tests is None:
+        summary_lines.append(
+            "No test results found in log; run may have aborted before tests. See log for details."
+        )
+
+    if failing:
+        summary_lines.append("Failing tests (line numbers refer to log):")
+        for name, line_no in failing:
+            summary_lines.append(f" - {name} (line {line_no})")
+
+    summary_lines.append(f"Full log: {log_path}")
+    return summary_lines
+
+
 def _get_module_list(
     c,
     modules=None,
@@ -1057,6 +1168,7 @@ def _expand_modules_with_deps(modules_csv):
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "db_filter": "DB_FILTER regex to pass to the test container Set to ''"
         " to disable. Default: '^devel$'",
+        "log_dir": "Directory (host) where log and xUnit files are written. Default: /tmp",
     },
 )
 def test(
@@ -1072,6 +1184,7 @@ def test(
     mode="init",
     db_filter="^devel$",
     with_deps=False,
+    log_dir="/tmp",
 ):
     """Run Odoo tests
 
@@ -1131,14 +1244,25 @@ def test(
         cmd = [DOCKER_COMPOSE_CMD, "run", "--rm"]
         if db_filter:
             cmd.extend(["-e", f"DB_FILTER='{db_filter}'"])
+        # Share log directory with host so artifacts persist
+        log_dir_path = Path(log_dir).expanduser().resolve()
+        log_dir_path.mkdir(parents=True, exist_ok=True)
+        log_dir = str(log_dir_path)
+        cmd.extend(["-v", f"{log_dir}:{log_dir}"])
         cmd.append("odoo")
+
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        safe_name = _sanitize_filename(modules)
+        log_path = log_dir_path / f"{safe_name}-{ts}.log"
         cmd.extend(odoo_command)
         with c.cd(str(PROJECT_ROOT)):
-            c.run(
-                " ".join(cmd),
-                env=UID_ENV,
-                pty=True,
-            )
+            run_cmd = 'bash -o pipefail -c "' + " ".join(cmd) + f' > {log_path} 2>&1"'
+            result = c.run(run_cmd, env=UID_ENV, pty=False, warn=True, hide=True)
+        summary_lines = _summarize_test_results(log_path)
+        for line in summary_lines:
+            _logger.info(line)
+        if result.failed:
+            raise exceptions.Exit(code=result.exited)
 
 
 @task(
@@ -1853,6 +1977,57 @@ def update_pot(
                                 _logger.error("Failed to update %s: %s", po_file, e)
 
         _logger.info("Total PO files updated: %d", po_files_updated)
+
+
+@task(
+    help={
+        "services": "Services to start (default: odoo odoo_proxy e2e-runner).",
+    },
+)
+def e2e_up(c, services="odoo odoo_proxy e2e-runner"):
+    """Start Odoo + Playwright e2e runner services."""
+    cmd = f"{E2E_COMPOSE_FILES} up -d {services}"
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd, env=UID_ENV, pty=True)
+
+
+@task
+def e2e_install(c):
+    """Install E2E dependencies inside the runner container."""
+    cmd = f"{E2E_COMPOSE_FILES} exec e2e-runner npm install"
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd, pty=True)
+
+
+@task(
+    help={
+        "project": "Playwright project to run (smoke, setup, spp-mis-demo-v2, all, firefox).",
+        "headed": "Run browser in headed mode.",
+        "debug": "Enable Playwright debug mode.",
+    },
+)
+def e2e(c, project="smoke", headed=False, debug=False):
+    """Run Playwright tests in the runner container."""
+    flags = []
+    if headed:
+        flags.append("--headed")
+    if debug:
+        flags.append("--debug")
+    flags_str = " ".join(flags)
+    cmd = (
+        f"{E2E_COMPOSE_FILES} exec e2e-runner "
+        f"npx playwright test --project={project} {flags_str}"
+    ).strip()
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd, pty=True)
+
+
+@task
+def e2e_report(c):
+    """Open the last Playwright HTML report."""
+    cmd = f"{E2E_COMPOSE_FILES} exec e2e-runner npx playwright show-report reports/html"
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd, pty=True)
 
 
 @task(

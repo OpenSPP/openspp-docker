@@ -1,0 +1,21 @@
+services:
+  e2e-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /workspace/openspp/odoo/custom/src/openspp_modules/e2e
+    command: tail -f /dev/null
+    depends_on:
+      - odoo
+    environment:
+      ODOO_URL: http://odoo:8069
+      ODOO_DB: devel
+      CI: "false"
+    volumes:
+      - .:/workspace/openspp:rw,z
+      - e2e-node-modules:/workspace/openspp/odoo/custom/src/openspp_modules/e2e/node_modules
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+volumes:
+  e2e-node-modules:
