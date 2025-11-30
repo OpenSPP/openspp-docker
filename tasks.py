@@ -65,6 +65,43 @@ E2E_COMPOSE_FILES = (
     f"{DOCKER_COMPOSE_CMD} -f docker-compose.yml -f docker-compose.e2e.yml"
 )
 
+DEMO_PROFILES = {
+    # Standardized demo recipes: extend this map when adding new demos.
+    "mis-demo-v2": {
+        "modules": "base,spp_mis_demo_v2",
+        "project": "spp-mis-demo-v2",
+        "description": "MIS demo v2 with CR v2, cycles, GRM stories",
+        "generate_demo": ["mis_demo_v2"],
+    },
+    # Aliases for convenience / new naming
+    "demo-mis-v2": {
+        "modules": "base,spp_mis_demo_v2",
+        "project": "spp-mis-demo-v2",
+        "description": "Alias for MIS demo v2",
+        "generate_demo": ["mis_demo_v2"],
+    },
+    "demo_mis_v2": {
+        "modules": "base,spp_mis_demo_v2",
+        "project": "spp-mis-demo-v2",
+        "description": "Alias for MIS demo v2 (underscore style)",
+        "generate_demo": ["mis_demo_v2"],
+    },
+    # GRM-focused demo: builds on MIS demo registrants/programs
+    "grm-demo": {
+        "modules": "base,spp_mis_demo_v2,spp_grm_demo",
+        "project": "grm-demo",
+        "description": "GRM demo with tickets linked to MIS demo registrants/programs",
+        "generate_demo": ["mis_demo_v2", "grm_demo"],
+    },
+    # Case management demo: builds on MIS registrants
+    "case-demo": {
+        "modules": "base,spp_mis_demo_v2,spp_demo_case",
+        "project": "case-demo",
+        "description": "Case management demo with stories and volume cases",
+        "generate_demo": ["mis_demo_v2", "case_demo"],
+    },
+}
+
 _logger = getLogger(__name__)
 
 
@@ -926,12 +963,14 @@ def _summarize_test_results(log_path: Path):
 
     if not log_path.exists():
         summary_lines.append(f"Log not found; summary skipped: {log_path}")
+        summary_lines.append(f"Full log: {log_path}")
         return summary_lines
 
     try:
         lines = log_path.read_text(errors="ignore").splitlines()
     except OSError as exc:  # pragma: no cover - defensive
         summary_lines.append(f"Could not read log {log_path}: {exc}")
+        summary_lines.append(f"Full log: {log_path}")
         return summary_lines
 
     log_text = "\n".join(lines)
@@ -983,36 +1022,409 @@ def _summarize_test_results(log_path: Path):
         passed = None
 
     failing = []
-    for idx, line in enumerate(lines, start=1):
-        m = re.match(r"^(FAIL|ERROR):\s+(.*)$", line)
-        if m:
-            failing.append((m.group(2).strip(), idx))
+    # Look for test failure patterns in Odoo test output
+    # Pattern: "ERROR: TestClass.test_method" or "FAIL: TestClass.test_method"
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        # Pattern: "ERROR: TestClass.test_method" or "FAIL: TestClass.test_method"
+        error_match = re.search(
+            r"(?:ERROR|FAIL):\s*([A-Za-z_][A-Za-z0-9_]*\.[A-Za-z0-9_]+)", line
+        )
+        if error_match:
+            test_name = error_match.group(1)
+            error_msg = None
+            error_type = None
 
+            # Extract module name - try multiple strategies
+            module_name = None
+
+            # Strategy 1: Look in the current line (e.g., "odoo.addons.spp_api_v2.tests.test_consent")
+            # Note: module names can contain numbers, so use [a-z0-9_]+
+            module_match = re.search(r"odoo\.addons\.([a-z0-9_]+)\.tests", line)
+            if module_match:
+                module_name = module_match.group(1)
+
+            # Strategy 2: Look backwards for "Starting" lines (usually 1-10 lines back)
+            if not module_name:
+                for lookback_idx in range(max(0, i - 10), i):
+                    lookback_line = lines[lookback_idx]
+                    # Pattern: "Starting TestClass.test_method" with module info
+                    if "Starting" in lookback_line:
+                        module_match = re.search(
+                            r"odoo\.addons\.([a-z0-9_]+)\.tests", lookback_line
+                        )
+                        if module_match:
+                            module_name = module_match.group(1)
+                            break
+
+            # Strategy 3: Look ahead in traceback for file paths
+            if not module_name:
+                for j in range(i + 1, min(i + 15, len(lines))):
+                    lookahead_line = lines[j]
+                    # Pattern: File "/opt/odoo/auto/addons/spp_api_v2/tests/..."
+                    file_match = re.search(
+                        r"/opt/odoo/auto/addons/([a-z0-9_]+)/tests/", lookahead_line
+                    )
+                    if file_match:
+                        module_name = file_match.group(1)
+                        break
+                    # Also check custom path
+                    file_match = re.search(
+                        r"/opt/odoo/custom/src/([^/]+)/.*tests/", lookahead_line
+                    )
+                    if file_match:
+                        # For openspp_modules, extract the actual module name from path
+                        path_part = file_match.group(1)
+                        if path_part == "openspp_modules":
+                            # Try to extract module from further in the path
+                            deeper_match = re.search(
+                                r"openspp_modules/([a-z0-9_]+)/", lookahead_line
+                            )
+                            if deeper_match:
+                                module_name = deeper_match.group(1)
+                                break
+                        else:
+                            module_name = path_part
+                            break
+
+            # Strategy 4: Infer from test class name (fallback heuristic)
+            if not module_name:
+                # Common patterns: TestConsent -> spp_api_v2, TestVocabulary -> spp_vocabulary
+                test_class = test_name.split(".")[0]
+                if any(
+                    x in test_class
+                    for x in [
+                        "Consent",
+                        "API",
+                        "OAuth",
+                        "Metadata",
+                        "Group",
+                        "Individual",
+                        "Search",
+                    ]
+                ):
+                    module_name = "spp_api_v2"
+                elif "Vocabulary" in test_class:
+                    module_name = "spp_vocabulary"
+                elif "Registrant" in test_class or "Phone" in test_class:
+                    module_name = "spp_registry_base"
+                elif "Membership" in test_class:
+                    module_name = "spp_registry_membership"
+                elif "Record" in test_class and "Consent" in test_class:
+                    module_name = "spp_consent"
+
+            # Look ahead for error details (usually within next 25 lines)
+            for j in range(i + 1, min(i + 30, len(lines))):
+                lookahead_line = lines[j]
+
+                # Check for AssertionError
+                if "AssertionError:" in lookahead_line:
+                    error_type = "AssertionError"
+                    # Extract the assertion message (everything after "AssertionError: ")
+                    msg_match = re.search(
+                        r"AssertionError:\s*(.+?)(?:\s*$|\s*:)", lookahead_line
+                    )
+                    if msg_match:
+                        error_msg = msg_match.group(1).strip()
+                        # If it's a long message, try to get just the key part
+                        if len(error_msg) > 150:
+                            # Try to extract the comparison part (e.g., "500 != 200")
+                            comp_match = re.search(r"(\d+\s*!=\s*\d+)", error_msg)
+                            if comp_match:
+                                error_msg = comp_match.group(1)
+                            else:
+                                # Extract first meaningful part
+                                parts = error_msg.split(":")
+                                if len(parts) > 1:
+                                    error_msg = (
+                                        parts[0].strip() + ": " + parts[1].strip()[:80]
+                                    )
+                                else:
+                                    error_msg = error_msg[:100] + "..."
+                    break
+
+                # Check for other error types (AttributeError, TypeError, KeyError, ValueError, etc.)
+                elif re.search(r"^(\w+Error):\s*(.+)$", lookahead_line):
+                    match = re.search(r"^(\w+Error):\s*(.+)$", lookahead_line)
+                    error_type = match.group(1)
+                    error_msg = match.group(2).strip()
+                    # Truncate long messages
+                    if len(error_msg) > 100:
+                        error_msg = error_msg[:97] + "..."
+                    break
+
+                # Check for database constraint errors (common in Odoo)
+                elif "duplicate key value violates unique constraint" in lookahead_line:
+                    error_type = "DatabaseError"
+                    constraint_match = re.search(r'"([^"]+)"', lookahead_line)
+                    if constraint_match:
+                        error_msg = (
+                            f"Unique constraint violation: {constraint_match.group(1)}"
+                        )
+                    else:
+                        error_msg = "Unique constraint violation"
+                    break
+
+                # Check for NameError, ImportError, etc. in traceback
+                elif re.search(r"(\w+Error):", lookahead_line) and not error_type:
+                    error_match = re.search(
+                        r"(\w+Error):\s*(.+?)(?:\s*$|$)", lookahead_line
+                    )
+                    if error_match:
+                        error_type = error_match.group(1)
+                        error_msg = (
+                            error_match.group(2).strip()
+                            if error_match.group(2)
+                            else None
+                        )
+                        if error_msg and len(error_msg) > 100:
+                            error_msg = error_msg[:97] + "..."
+                        break
+
+            # If no error type found, try to extract from traceback or default to "Error"
+            if not error_type:
+                # Look for any error pattern in the next few lines
+                for j in range(i + 1, min(i + 10, len(lines))):
+                    lookahead_line = lines[j]
+                    if "Traceback" in lookahead_line:
+                        # Traceback found, error details should follow
+                        error_type = "Error"
+                        break
+                if not error_type:
+                    error_type = "Error"
+
+            # Add to failing list
+            failing.append(
+                {
+                    "test": test_name,
+                    "module": module_name,
+                    "error_type": error_type,
+                    "error_msg": error_msg,
+                    "line": i + 1,  # Line numbers are 1-indexed
+                }
+            )
+
+            # Skip ahead to avoid duplicate matches
+            i += 5
+        else:
+            i += 1
+
+    # Build summary with metrics
     summary_parts = []
     if tests is not None:
         summary_parts.append(f"{tests} total")
-    if passed is not None:
-        summary_parts.append(f"{passed} passed")
+        if passed is not None:
+            summary_parts.append(f"{passed} passed")
+            if tests > 0:
+                pass_rate = (passed / tests) * 100
+                summary_parts.append(f"{pass_rate:.1f}% pass rate")
     summary_parts.append(f"{failures} failed")
     summary_parts.append(f"{errors} errors")
     summary_parts.append(f"{skipped} skipped")
 
-    summary_lines.append("Test summary: " + " | ".join(summary_parts))
+    summary_lines.append("=" * 80)
+    summary_lines.append("TEST SUMMARY")
+    summary_lines.append("=" * 80)
+    summary_lines.append(" | ".join(summary_parts))
+
     if tests_not_run or tests == 0:
         summary_lines.append(
-            "No tests collected or executed. Install may have failed or no tags matched; see log for details."
+            "\n⚠️  No tests collected or executed. Install may have failed or no tags matched; see log for details."
         )
     elif tests is None:
         summary_lines.append(
-            "No test results found in log; run may have aborted before tests. See log for details."
+            "\n⚠️  No test results found in log; run may have aborted before tests. See log for details."
         )
 
+    # List failing tests with more detail
     if failing:
-        summary_lines.append("Failing tests (line numbers refer to log):")
-        for name, line_no in failing:
-            summary_lines.append(f" - {name} (line {line_no})")
+        # Remove duplicates (same test name)
+        seen_tests = set()
+        unique_failing = []
+        for fail in failing:
+            test_key = fail["test"]
+            if test_key not in seen_tests:
+                seen_tests.add(test_key)
+                unique_failing.append(fail)
 
+        # Group by module for better readability
+        by_module = {}
+        for fail in unique_failing:
+            module = fail.get("module") or "unknown"
+            if module not in by_module:
+                by_module[module] = []
+            by_module[module].append(fail)
+
+        # Add module breakdown summary
+        summary_lines.append(f"\n❌ FAILING TESTS ({len(unique_failing)}):")
+        if len(by_module) > 1:
+            module_summary = []
+            for module in sorted(by_module.keys()):
+                count = len(by_module[module])
+                module_summary.append(f"{module}: {count}")
+            summary_lines.append("  " + " | ".join(module_summary))
+        summary_lines.append("-" * 80)
+
+        # Sort modules alphabetically
+        for module in sorted(by_module.keys()):
+            module_failures = by_module[module]
+            if len(by_module) > 1:
+                summary_lines.append(
+                    f"\n  📦 {module} ({len(module_failures)} failures)"
+                )
+
+            for fail in module_failures:
+                test_name = fail["test"]
+                error_type = fail.get("error_type", "Error")
+                error_msg = fail.get("error_msg")
+                line_no = fail["line"]
+
+                # Format test name (show class.method)
+                display_name = test_name
+                if "." in test_name:
+                    parts = test_name.split(".")
+                    if len(parts) >= 2:
+                        display_name = f"{parts[-2]}.{parts[-1]}"
+
+                # Format output
+                if error_msg:
+                    # Truncate very long error messages for display
+                    display_msg = error_msg
+                    if len(display_msg) > 120:
+                        display_msg = display_msg[:117] + "..."
+                    summary_lines.append(f"    • {display_name}")
+                    summary_lines.append(f"      [{error_type}] {display_msg}")
+                else:
+                    summary_lines.append(f"    • {display_name} [{error_type}]")
+
+                summary_lines.append(f"      → log line {line_no}")
+    elif tests is not None and failures == 0 and errors == 0:
+        summary_lines.append("\n✅ All tests passed!")
+
+    summary_lines.append("\n" + "=" * 80)
     summary_lines.append(f"Full log: {log_path}")
+    summary_lines.append("=" * 80)
+    return summary_lines
+
+
+def _summarize_resetdb_results(log_path: Path, dbname: str, modules: str):
+    """Return a compact summary parsed from the resetdb log."""
+
+    summary_lines = []
+
+    if not log_path.exists():
+        summary_lines.append(f"Log not found: {log_path}")
+        return summary_lines
+
+    try:
+        lines = log_path.read_text(errors="ignore").splitlines()
+        log_text = "\n".join(lines)
+    except OSError as exc:
+        summary_lines.append(f"Could not read log {log_path}: {exc}")
+        return summary_lines
+
+    summary_lines.append("=" * 80)
+    summary_lines.append("DATABASE RESET SUMMARY")
+    summary_lines.append("=" * 80)
+
+    # Extract key information
+    installed_modules = []
+    errors = []
+    warnings = []
+
+    # Look for module installation messages
+    for line in lines:
+        # Module installed successfully
+        if re.search(r"module.*installed|installing.*module", line, re.IGNORECASE):
+            module_match = re.search(
+                r"installing\s+['\"]?([a-z0-9_]+)", line, re.IGNORECASE
+            )
+            if module_match:
+                mod_name = module_match.group(1)
+                if mod_name not in installed_modules:
+                    installed_modules.append(mod_name)
+
+        # Errors
+        if re.search(r"error|exception|failed|traceback", line, re.IGNORECASE):
+            if "ERROR" in line.upper() or "Traceback" in line:
+                # Extract meaningful error message
+                error_match = re.search(
+                    r"(?:ERROR|Error|Exception):\s*(.+?)(?:\s*$|\.)", line
+                )
+                if error_match:
+                    error_msg = error_match.group(1).strip()
+                    if len(error_msg) > 100:
+                        error_msg = error_msg[:97] + "..."
+                    if error_msg not in errors:
+                        errors.append(error_msg)
+
+        # Warnings
+        if re.search(r"warning|warn", line, re.IGNORECASE):
+            warn_match = re.search(r"(?:WARNING|Warning):\s*(.+?)(?:\s*$|\.)", line)
+            if warn_match:
+                warn_msg = warn_match.group(1).strip()
+                if len(warn_msg) > 100:
+                    warn_msg = warn_msg[:97] + "..."
+                if warn_msg not in warnings:
+                    warnings.append(warn_msg)
+
+    # Database status
+    db_dropped = "drop" in log_text.lower() or "dropped" in log_text.lower()
+    db_created = (
+        "create" in log_text.lower()
+        or "created" in log_text.lower()
+        or "init" in log_text.lower()
+    )
+
+    # Summary information
+    summary_lines.append(f"Database: {dbname}")
+    summary_lines.append(f"Modules: {modules}")
+    summary_lines.append("")
+
+    if db_dropped:
+        summary_lines.append("✅ Database dropped successfully")
+    if db_created:
+        summary_lines.append("✅ Database created/initialized successfully")
+
+    if installed_modules:
+        summary_lines.append(f"\n📦 Installed modules ({len(installed_modules)}):")
+        # Show first 20 modules, then count
+        if len(installed_modules) <= 20:
+            for mod in installed_modules[:20]:
+                summary_lines.append(f"  • {mod}")
+        else:
+            for mod in installed_modules[:20]:
+                summary_lines.append(f"  • {mod}")
+            summary_lines.append(f"  ... and {len(installed_modules) - 20} more")
+
+    if errors:
+        summary_lines.append(f"\n❌ ERRORS ({len(errors)}):")
+        for error in errors[:10]:  # Show first 10 errors
+            summary_lines.append(f"  • {error}")
+        if len(errors) > 10:
+            summary_lines.append(f"  ... and {len(errors) - 10} more errors")
+
+    if warnings:
+        summary_lines.append(f"\n⚠️  WARNINGS ({len(warnings)}):")
+        for warning in warnings[:5]:  # Show first 5 warnings
+            summary_lines.append(f"  • {warning}")
+        if len(warnings) > 5:
+            summary_lines.append(f"  ... and {len(warnings) - 5} more warnings")
+
+    # Check for success indicators
+    if "stop-after-init" in log_text.lower() or "initdb" in log_text.lower():
+        if not errors:
+            summary_lines.append("\n✅ Database reset completed successfully!")
+        else:
+            summary_lines.append(
+                "\n⚠️  Database reset completed with errors (see above)"
+            )
+
+    summary_lines.append("\n" + "=" * 80)
+    summary_lines.append(f"Full log: {log_path}")
+    summary_lines.append("=" * 80)
+
     return summary_lines
 
 
@@ -1048,7 +1460,7 @@ def _get_module_list(
         module_list = c.run(
             cmd,
             env=UID_ENV,
-            pty=True,
+            pty=False,
             hide="stdout",
         ).stdout.splitlines()[-1]
     return module_list
@@ -1169,6 +1581,7 @@ def _expand_modules_with_deps(modules_csv):
         "db_filter": "DB_FILTER regex to pass to the test container Set to ''"
         " to disable. Default: '^devel$'",
         "log_dir": "Directory (host) where log and xUnit files are written. Default: /tmp",
+        "stream": "Stream full output to console instead of hiding it. Default: False",
     },
 )
 def test(
@@ -1185,6 +1598,7 @@ def test(
     db_filter="^devel$",
     with_deps=False,
     log_dir="/tmp",
+    stream=False,
 ):
     """Run Odoo tests
 
@@ -1219,9 +1633,9 @@ def test(
     skip_list = [m for m in skip.split(",") if m]
     for m_to_skip in skip_list:
         if m_to_skip not in modules_list:
-            _logger.warning(
-                "%s not found in the list of addons to test: %s", m_to_skip, modules
-            )
+            # _logger.warning(
+            #     "%s not found in the list of addons to test: %s", m_to_skip, modules
+            # )
             continue
         modules_list.remove(m_to_skip)
     modules = ",".join(modules_list)
@@ -1232,6 +1646,15 @@ def test(
         # modules pulled in as dependencies like queue_job).
         modules_list = [m for m in modules_list if m not in skip_list]
         modules = ",".join(modules_list)
+
+    # Determine log file path early and display it
+    log_dir_path = Path(log_dir).expanduser().resolve()
+    log_dir_path.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    safe_name = _sanitize_filename(modules)
+    log_path = log_dir_path / f"{safe_name}-{ts}.log"
+    print(f"Test log file: {log_path}")
+
     odoo_command.append(modules)
     if ODOO_VERSION >= 12:
         # Limit tests to explicit list
@@ -1245,22 +1668,40 @@ def test(
         if db_filter:
             cmd.extend(["-e", f"DB_FILTER='{db_filter}'"])
         # Share log directory with host so artifacts persist
-        log_dir_path = Path(log_dir).expanduser().resolve()
-        log_dir_path.mkdir(parents=True, exist_ok=True)
         log_dir = str(log_dir_path)
         cmd.extend(["-v", f"{log_dir}:{log_dir}"])
         cmd.append("odoo")
-
-        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-        safe_name = _sanitize_filename(modules)
-        log_path = log_dir_path / f"{safe_name}-{ts}.log"
         cmd.extend(odoo_command)
         with c.cd(str(PROJECT_ROOT)):
-            run_cmd = 'bash -o pipefail -c "' + " ".join(cmd) + f' > {log_path} 2>&1"'
-            result = c.run(run_cmd, env=UID_ENV, pty=False, warn=True, hide=True)
-        summary_lines = _summarize_test_results(log_path)
-        for line in summary_lines:
-            _logger.info(line)
+            if stream:
+                # Stream output to console in real-time, also save to log using tee
+                print(f"Streaming output (also saved to: {log_path})")
+                print("-" * 80)
+                # Use tee to both display and save output
+                run_cmd = (
+                    'bash -o pipefail -c "' + " ".join(cmd) + f' 2>&1 | tee {log_path}"'
+                )
+                result = c.run(run_cmd, env=UID_ENV, pty=True, warn=True)
+            else:
+                # Hide output and save to log file
+                run_cmd = (
+                    'bash -o pipefail -c "' + " ".join(cmd) + f' > {log_path} 2>&1"'
+                )
+                result = c.run(run_cmd, env=UID_ENV, pty=False, warn=True, hide=True)
+
+        # Display summary
+        if log_path.exists():
+            print()  # Add blank line before summary
+            try:
+                summary_lines = _summarize_test_results(log_path)
+                for line in summary_lines:
+                    print(line)
+            except Exception as exc:
+                print(f"Failed to generate test summary: {exc}")
+                print(f"Full log: {log_path}")
+        else:
+            print(f"\nNote: Log file not found at {log_path}")
+
         if result.failed:
             raise exceptions.Exit(code=result.exited)
 
@@ -1272,6 +1713,8 @@ def test(
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "db_filter": "DB_FILTER regex to pass to the test container. Default: '^devel$'",
         "debugpy": "Run tests with debugpy enabled. Default: False",
+        "log_dir": "Directory (host) where log and xUnit files are written. Default: /tmp",
+        "stream": "Stream full output to console instead of hiding it. Default: False",
     }
 )
 def test_spp(
@@ -1281,6 +1724,8 @@ def test_spp(
     mode="init",
     db_filter="^devel$",
     debugpy=False,
+    log_dir="/tmp",
+    stream=False,
 ):
     """Run tests for all spp_* addons found in openspp_modules."""
     modules_list = _list_spp_modules()
@@ -1298,6 +1743,8 @@ def test_spp(
         mode=mode,
         db_filter=db_filter,
         debugpy=debugpy,
+        log_dir=log_dir,
+        stream=stream,
     )
 
 
@@ -1308,6 +1755,8 @@ def test_spp(
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "db_filter": "DB_FILTER regex to pass to the test container. Default: '^devel$'",
         "debugpy": "Run tests with debugpy enabled. Default: False",
+        "log_dir": "Directory (host) where log and xUnit files are written. Default: /tmp",
+        "stream": "Stream full output to console instead of hiding it. Default: False",
     }
 )
 def test_spp_deps(
@@ -1317,6 +1766,8 @@ def test_spp_deps(
     mode="init",
     db_filter="^devel$",
     debugpy=False,
+    log_dir="/tmp",
+    stream=False,
 ):
     """Run tests for spp_* modules in the dependency closure of given modules."""
     spp_modules_csv = _spp_dependency_closure(modules)
@@ -1337,6 +1788,8 @@ def test_spp_deps(
         mode=mode,
         db_filter=db_filter,
         debugpy=debugpy,
+        log_dir=log_dir,
+        stream=stream,
     )
 
 
@@ -1364,6 +1817,8 @@ def stop(c, purge=False):
         " Default: True",
         "dependencies": "Install only the dependencies of the specified addons."
         "Default: False",
+        "log_dir": "Directory (host) where log files are written. Default: /tmp",
+        "stream": "Stream full output to console instead of hiding it. Default: False",
     },
 )
 def resetdb(
@@ -1376,6 +1831,8 @@ def resetdb(
     dbname="devel",
     populate=True,
     dependencies=False,
+    log_dir="/tmp",
+    stream=False,
 ):
     """Reset the specified database with the specified modules.
 
@@ -1388,34 +1845,93 @@ def resetdb(
         modules = _get_module_list(c, modules, core, extra, private, enterprise)
     else:
         modules = modules or "base"
+
+    # Set up log file
+    log_dir_path = Path(log_dir).expanduser().resolve()
+    log_dir_path.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    safe_name = _sanitize_filename(f"{dbname}-{modules}")
+    log_path = log_dir_path / f"resetdb-{safe_name}-{ts}.log"
+    print(f"ResetDB log file: {log_path}")
+
+    modules_display = modules
     with c.cd(str(PROJECT_ROOT)):
-        c.run(f"{DOCKER_COMPOSE_CMD} stop odoo", pty=True)
+        # Stop odoo
+        if stream:
+            print("Stopping Odoo...")
+        c.run(f"{DOCKER_COMPOSE_CMD} stop odoo", pty=stream)
+
         _run = f"{DOCKER_COMPOSE_CMD} run --rm -l traefik.enable=false odoo"
-        c.run(
-            f"{_run} click-odoo-dropdb {dbname}",
-            env=UID_ENV,
-            warn=True,
-            pty=True,
-        )
+
+        # Drop database
+        if stream:
+            print(f"Dropping database '{dbname}'...")
+            print("-" * 80)
+
+        drop_cmd = f"{_run} click-odoo-dropdb {dbname}"
+        if stream:
+            c.run(
+                f"{drop_cmd} 2>&1 | tee -a {log_path}",
+                env=UID_ENV,
+                warn=True,
+                pty=True,
+            )
+        else:
+            c.run(
+                f"{drop_cmd} >> {log_path} 2>&1",
+                env=UID_ENV,
+                warn=True,
+                pty=False,
+                hide=True,
+            )
+
+        # Create/initialize database
         lang = os.getenv("INITIAL_LANG")
         lang_opt = f" --lang {lang}" if lang else ""
+
+        if stream:
+            print(f"\nInitializing database '{dbname}' with modules: {modules}...")
+            print("-" * 80)
+
         if ODOO_VERSION >= 19:
             # Odoo 19: Registry.new(force_demo=...) removed → avoid click-odoo-initdb
             # Use native Odoo CLI; --without-demo=all replaces force_demo=False
             lang_opt19 = f" --load-language={lang}" if lang else ""
-            c.run(
+            init_cmd = (
                 f"{_run} odoo --stop-after-init -d {dbname} -i {modules}"
-                f"{lang_opt19} --without-demo=all",
+                f"{lang_opt19} --without-demo=all"
+            )
+        else:
+            # Older versions keep using click-odoo-initdb
+            init_cmd = f"{_run} click-odoo-initdb -n {dbname} -m {modules}{lang_opt}"
+
+        if stream:
+            c.run(
+                f"{init_cmd} 2>&1 | tee -a {log_path}",
                 env=UID_ENV,
                 pty=True,
             )
         else:
-            # Older versions keep using click-odoo-initdb
             c.run(
-                f"{_run} click-odoo-initdb -n {dbname} -m {modules}{lang_opt}",
+                f"{init_cmd} >> {log_path} 2>&1",
                 env=UID_ENV,
-                pty=True,
+                pty=False,
+                hide=True,
             )
+
+    # Display summary
+    if log_path.exists():
+        print()  # Add blank line before summary
+        try:
+            summary_lines = _summarize_resetdb_results(
+                log_path, dbname, modules_display
+            )
+            for line in summary_lines:
+                print(line)
+        except Exception as exc:
+            print(f"Failed to generate resetdb summary: {exc}")
+            print(f"Full log: {log_path}")
+
     if populate and ODOO_VERSION < 11:
         _logger.warn(
             f"Skipping populate task as it is not available in v{ODOO_VERSION}"
@@ -2028,6 +2544,157 @@ def e2e_report(c):
     cmd = f"{E2E_COMPOSE_FILES} exec e2e-runner npx playwright show-report reports/html"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd, pty=True)
+
+
+def _run_odoo_shell(c, dbname, py_command, stream=False):
+    """Execute a small python command inside odoo shell for the given DB."""
+    cmd = (
+        f"{DOCKER_COMPOSE_CMD} run --rm -l traefik.enable=false "
+        f'-e LOG_LEVEL=INFO odoo bash -c "echo \\"{py_command}\\" | '
+        f'odoo shell -d {dbname} --no-http --stop-after-init"'
+    )
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd, pty=stream)
+
+
+def _generate_demo_data(c, profile_key, dbname, stream=False):
+    """Generate demo data for a given profile after modules are installed."""
+    profile = DEMO_PROFILES.get(profile_key)
+    if not profile:
+        return
+
+    demo_kinds = profile.get("generate_demo") or []
+    if isinstance(demo_kinds, str):
+        demo_kinds = [demo_kinds]
+
+    # Note: Security groups are now assigned automatically by the demo generator
+    # when change requests are created (see spp_mis_demo_v2/models/mis_demo_generator.py)
+
+    for demo_kind in demo_kinds:
+        if demo_kind == "mis_demo_v2":
+            # Use the MIS demo generator model to populate full storyline data
+            # Note: action_generate() now commits internally, but we add explicit commit for shell safety
+            py_cmd = (
+                "gen = env['spp.mis.demo.generator'].create({'name': 'E2E Demo', 'create_change_requests': True}); "
+                "gen.action_generate(); "
+                "env.cr.commit()"
+            )
+            _logger.info("Generating MIS demo data on DB %s", dbname)
+            _run_odoo_shell(c, dbname, py_cmd, stream=stream)
+        elif demo_kind == "grm_demo":
+            # GRM demo tickets (requires registrants/programs)
+            py_cmd = (
+                "env['spp.grm.demo.generator']"
+                ".create({'name': 'GRM Demo Data'}).generate_tickets()"
+            )
+            _logger.info("Generating GRM demo data on DB %s", dbname)
+            _run_odoo_shell(c, dbname, py_cmd, stream=stream)
+        elif demo_kind == "case_demo":
+            # Case management demo data
+            py_cmd = (
+                "env['spp.case.demo.generator']"
+                ".create({'name': 'Case Demo Data'}).generate_cases()"
+            )
+            _logger.info("Generating Case Management demo data on DB %s", dbname)
+            _run_odoo_shell(c, dbname, py_cmd, stream=stream)
+        else:
+            _logger.warning("Unknown demo generator '%s' skipped", demo_kind)
+
+
+def _assign_test_groups(c, dbname, stream=False):
+    """Assign necessary security groups to admin user for E2E tests.
+
+    NOTE: This function is deprecated. Security groups are now assigned automatically
+    by demo generators (e.g., spp_mis_demo_v2 assigns CR groups when creating change requests).
+    This function is kept for backward compatibility but may not be called.
+    """
+    py_cmd = (
+        "from odoo import Command; "
+        "admin = env['res.users'].search([('login', '=', 'admin')], limit=1); "
+        "groups_to_assign = ["
+        "    'spp_change_request_v2.group_cr_validator',"  # Validator can see all CRs (not just own)
+        "    'spp_case_base.group_case_manager',"  # Manager can see all cases (not just assigned)
+        "    'spp_grm.group_grm_manager',"  # Manager can see all tickets (not just assigned)
+        "]; "
+        "for group_xmlid in groups_to_assign: "
+        "    try: "
+        "        group_id = env.ref(group_xmlid, raise_if_not_found=False); "
+        "        if group_id and group_id.id not in admin.group_ids.ids: "
+        "            admin.write({'group_ids': [Command.link(group_id.id)]}); "
+        "    except: "
+        "        pass; "
+        "env.cr.commit()"
+    )
+    _logger.info("Assigning test security groups to admin user on DB %s", dbname)
+    _run_odoo_shell(c, dbname, py_cmd, stream=stream)
+
+
+def _get_demo_profile(demo_key):
+    """Return a normalized demo profile."""
+    key = demo_key.strip().lower().replace("_", "-")
+    if key not in DEMO_PROFILES:
+        raise exceptions.ParseError(
+            msg=f"Unknown demo '{demo_key}'. Available: {', '.join(sorted(DEMO_PROFILES))}"
+        )
+    return DEMO_PROFILES[key]
+
+
+@task(
+    help={
+        "demo": f"Demo profile to run. Available: {', '.join(sorted(DEMO_PROFILES))}. Default: mis-demo-v2",
+        "dbname": "Database name to reset and test against. Default: devel",
+        "headed": "Run Playwright in headed mode.",
+        "debug": "Enable Playwright debug mode.",
+        "no_reset": "Skip DB reset/installation step.",
+        "modules": "Override modules CSV to install instead of the profile default.",
+        "project": "Override Playwright project name instead of the profile default.",
+        "populate": "Run preparedb after reset (default False).",
+        "stream": "Stream resetdb output to console. Default: True.",
+        "install_deps": "Run npm install inside e2e-runner before tests. Default: True.",
+        "no_demo": "Skip demo data generation even if profile defines it.",
+    }
+)
+def e2e_demo(
+    c,
+    demo="mis-demo-v2",
+    dbname="devel",
+    headed=False,
+    debug=False,
+    no_reset=False,
+    modules=None,
+    project=None,
+    populate=False,
+    stream=True,
+    install_deps=True,
+    no_demo=False,
+):
+    """Reset DB, install modules, generate demo data, then run its matching Playwright suite.
+
+    Demo data generation is automatic based on the demo profile unless --no-demo is passed.
+    """
+
+    profile = _get_demo_profile(demo)
+    modules_csv = modules or profile["modules"]
+    project_name = project or profile["project"]
+
+    if not no_reset:
+        resetdb(
+            c,
+            modules=modules_csv,
+            dbname=dbname,
+            populate=populate,
+            stream=stream,
+        )
+
+    if not no_demo and profile.get("generate_demo"):
+        _generate_demo_data(c, demo, dbname, stream=stream)
+
+    # Ensure services and runner are up
+    e2e_up(c)
+    if install_deps:
+        e2e_install(c)
+
+    e2e(c, project=project_name, headed=headed, debug=debug)
 
 
 @task(
