@@ -68,34 +68,34 @@ E2E_COMPOSE_FILES = (
 DEMO_PROFILES = {
     # Standardized demo recipes: extend this map when adding new demos.
     "mis-demo-v2": {
-        "modules": "base,spp_mis_demo_v2",
+        "modules": "base,spp_base_demo,spp_mis_demo_v2,spp_case_base,spp_demo_case,spp_grm,spp_grm_demo",
         "project": "spp-mis-demo-v2",
-        "description": "MIS demo v2 with CR v2, cycles, GRM stories",
-        "generate_demo": ["mis_demo_v2"],
+        "description": "MIS demo v2 with CR v2, cycles, GRM stories, Case Management",
+        "generate_demo": ["mis_demo_v2", "case_demo", "grm_demo"],
     },
     # Aliases for convenience / new naming
     "demo-mis-v2": {
-        "modules": "base,spp_mis_demo_v2",
+        "modules": "base,spp_base_demo,spp_mis_demo_v2,spp_case_base,spp_demo_case,spp_grm,spp_grm_demo",
         "project": "spp-mis-demo-v2",
         "description": "Alias for MIS demo v2",
-        "generate_demo": ["mis_demo_v2"],
+        "generate_demo": ["mis_demo_v2", "case_demo", "grm_demo"],
     },
     "demo_mis_v2": {
-        "modules": "base,spp_mis_demo_v2",
+        "modules": "base,spp_base_demo,spp_mis_demo_v2,spp_case_base,spp_demo_case,spp_grm,spp_grm_demo",
         "project": "spp-mis-demo-v2",
         "description": "Alias for MIS demo v2 (underscore style)",
-        "generate_demo": ["mis_demo_v2"],
+        "generate_demo": ["mis_demo_v2", "case_demo", "grm_demo"],
     },
     # GRM-focused demo: builds on MIS demo registrants/programs
     "grm-demo": {
-        "modules": "base,spp_mis_demo_v2,spp_grm_demo",
+        "modules": "base,spp_base_demo,spp_mis_demo_v2,spp_grm_demo",
         "project": "grm-demo",
         "description": "GRM demo with tickets linked to MIS demo registrants/programs",
         "generate_demo": ["mis_demo_v2", "grm_demo"],
     },
     # Case management demo: builds on MIS registrants
     "case-demo": {
-        "modules": "base,spp_mis_demo_v2,spp_demo_case",
+        "modules": "base,spp_base_demo,spp_mis_demo_v2,spp_demo_case",
         "project": "case-demo",
         "description": "Case management demo with stories and volume cases",
         "generate_demo": ["mis_demo_v2", "case_demo"],
@@ -2495,16 +2495,75 @@ def update_pot(
         _logger.info("Total PO files updated: %d", po_files_updated)
 
 
+def _wait_for_odoo_ready(c, url="http://odoo:8069/web/login", max_attempts=60, delay=2):
+    """Wait for Odoo to be ready and accessible.
+
+    Args:
+        c: Invoke context
+        url: URL to check (default: http://odoo:8069/web/login)
+        max_attempts: Maximum number of attempts (default: 60)
+        delay: Delay between attempts in seconds (default: 2)
+
+    Raises:
+        exceptions.Exit: If Odoo is not ready after max_attempts
+    """
+    _logger.info("Waiting for Odoo to be ready at %s...", url)
+
+    # First, wait a bit for containers to start
+    time.sleep(2)
+
+    # Check from within the e2e-runner container since that's where tests run
+    # and where the network connectivity matches the test environment
+    for attempt in range(1, max_attempts + 1):
+        try:
+            # Use curl from within the e2e-runner container to check Odoo
+            # Use -T flag for non-interactive mode and handle errors gracefully
+            cmd = (
+                f"{E2E_COMPOSE_FILES} exec -T e2e-runner "
+                f'sh -c \'curl -f -s -o /dev/null -w "%{{http_code}}" {url} 2>/dev/null || echo "000"\''
+            )
+            result = c.run(cmd, hide=True, warn=True)
+
+            # Check if we got a successful HTTP response (2xx or 3xx)
+            http_code = result.stdout.strip() if result.stdout else "000"
+            if http_code.startswith(("2", "3")):
+                _logger.info("Odoo is ready! (HTTP %s)", http_code)
+                return
+
+            if attempt % 5 == 0:
+                _logger.info(
+                    "Still waiting for Odoo... (attempt %d/%d, last code: %s)",
+                    attempt,
+                    max_attempts,
+                    http_code,
+                )
+        except Exception as e:
+            if attempt % 5 == 0:
+                _logger.debug("Error checking Odoo readiness: %s", e)
+
+        time.sleep(delay)
+
+    raise exceptions.Exit(
+        code=1,
+        message=f"Odoo did not become ready after {max_attempts} attempts "
+        f"(checked {url})",
+    )
+
+
 @task(
     help={
         "services": "Services to start (default: odoo odoo_proxy e2e-runner).",
+        "wait": "Wait for Odoo to be ready before returning. Default: True",
     },
 )
-def e2e_up(c, services="odoo odoo_proxy e2e-runner"):
+def e2e_up(c, services="odoo odoo_proxy e2e-runner", wait=True):
     """Start Odoo + Playwright e2e runner services."""
     cmd = f"{E2E_COMPOSE_FILES} up -d {services}"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd, env=UID_ENV, pty=True)
+
+    if wait and "odoo" in services:
+        _wait_for_odoo_ready(c)
 
 
 @task
