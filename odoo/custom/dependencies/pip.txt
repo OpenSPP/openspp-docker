@@ -58,3 +58,7 @@ python-multipart
 ujson
 a2wsgi
 parse-accept-language
+
+# Data analysis dependencies
+pandas>=2.2.2
+
