@@ -58,3 +58,6 @@ python-multipart
 ujson
 a2wsgi
 parse-accept-language
+
+pandas>=2.3.3
+
