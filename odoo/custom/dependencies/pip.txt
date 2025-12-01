@@ -59,5 +59,6 @@ ujson
 a2wsgi
 parse-accept-language
 
-pandas>=2.3.3
+# Data analysis dependencies
+pandas>=2.2.2
 
