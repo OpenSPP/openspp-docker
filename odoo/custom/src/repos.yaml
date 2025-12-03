@@ -49,7 +49,7 @@ openspp_modules:
   defaults:
     depth: $DEPTH_DEFAULT
   remotes:
-    openspp: https://github.com/OpenSPP/openspp-clean-jeremi.git
+    openspp: https://github.com/OpenSPP/openspp-modules-v2.git
   target: openspp 19.0
   merges:
     - openspp 19.0
