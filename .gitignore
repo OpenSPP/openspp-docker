@@ -34,3 +34,4 @@
 
 # OSX Files
 .DS_Store
+odoo/custom/src/.DS_Store

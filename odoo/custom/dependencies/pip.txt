@@ -63,4 +63,6 @@ pandas
 Fiona
 matplotlib
 geopandas
-celpy
+cel-python
+
+httpx

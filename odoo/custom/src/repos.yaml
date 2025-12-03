@@ -95,10 +95,3 @@ web-api:
   target: OCA 19.0
   merges:
     - OCA 19.0
-
-dswd-modules:
-  remotes:
-    NL: git@github.com:newlogic/dswd-4ps-dp-openspp-module.git
-  target: NL 17.0
-  merges:
-    - NL 17.0

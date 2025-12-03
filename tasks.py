@@ -68,7 +68,8 @@ E2E_COMPOSE_FILES = (
 DEMO_PROFILES = {
     # Standardized demo recipes: extend this map when adding new demos.
     "mis-demo-v2": {
-        "modules": "base,spp_base_demo,spp_mis_demo_v2,spp_case_base,spp_demo_case,spp_grm,spp_grm_demo",
+        # Uses consolidated demo stack (spp_demo) plus MIS/Case/GRM demo data
+        "modules": "base,spp_demo,spp_mis_demo_v2,spp_case_base,spp_demo_case,spp_grm,spp_grm_demo",
         "project": "spp-mis-demo-v2",
         "description": "MIS demo v2 with CR v2, cycles, GRM stories, Case Management",
         "generate_demo": ["mis_demo_v2", "case_demo", "grm_demo"],
