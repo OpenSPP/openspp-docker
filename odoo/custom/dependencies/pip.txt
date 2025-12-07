@@ -63,6 +63,8 @@ pandas
 Fiona
 matplotlib
 geopandas
-cel-python
 
 httpx
+
+scipy
+any-llm-sdk
