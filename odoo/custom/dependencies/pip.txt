@@ -68,3 +68,6 @@ httpx
 
 scipy
 any-llm-sdk
+
+# Antivirus scanning
+pyclamd
