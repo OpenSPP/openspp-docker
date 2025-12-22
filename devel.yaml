@@ -20,6 +20,8 @@ services:
     extends:
       file: common.yaml
       service: odoo
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     build:
       args:
         # To aggregate in development, use `setup-devel.yaml`
@@ -34,7 +36,8 @@ services:
     environment:
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-devel}"
       INITIAL_LANG: "en_US"
-      LIST_DB: "true"
+      LIST_DB: "false"
+      DBFILTER: "^devel$$"
       DEBUGPY_ENABLE: "${DOODBA_DEBUGPY_ENABLE:-0}"
       PGDATABASE: &dbname devel
       PYTHONDONTWRITEBYTECODE: 1
@@ -44,6 +47,10 @@ services:
       WDB_WEB_PORT: "${PORT_PREFIX:-19}984"
       # To avoid installing demo data export DOODBA_WITHOUT_DEMO=all
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-false}"
+      # Development master key for spp_key_management (DO NOT use in production!)
+      SPP_MASTER_KEY: "${SPP_MASTER_KEY:-8pBUQWE3QVfTH0JCnpuXyxMOY4RtxGCkDWmfLHggXag=}"
+      # Enable queue_job channels for DCI async operations
+      ODOO_QUEUE_JOB_CHANNELS: "root:2,root.dci:2"
     volumes:
       - ./odoo/custom:/opt/odoo/custom:rw,z
       - ./odoo/auto:/opt/odoo/auto:rw,z
@@ -64,6 +71,43 @@ services:
       - --limit-time-real=9999999
       - --workers=0
       - --dev=reload,qweb,werkzeug,xml,access
+      - --database=devel
+      - --db-filter=^devel$
+
+  odoo_queue_worker:
+    extends:
+      file: common.yaml
+      service: odoo
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build:
+      args:
+        AGGREGATE: "false"
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
+        PIP_INSTALL_ODOO: "false"
+        CLEAN: "false"
+        COMPILE: "false"
+    environment:
+      DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-devel}"
+      PGDATABASE: *dbname
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONOPTIMIZE: ""
+      PYTHONPATH: /opt/odoo/custom/src/odoo
+      WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-false}"
+      SPP_MASTER_KEY: "${SPP_MASTER_KEY:-8pBUQWE3QVfTH0JCnpuXyxMOY4RtxGCkDWmfLHggXag=}"
+      ODOO_QUEUE_JOB_CHANNELS: "root:2,root.dci:2"
+    volumes:
+      - ./odoo/custom:/opt/odoo/custom:rw,z
+      - ./odoo/auto:/opt/odoo/auto:rw,z
+    depends_on:
+      - db
+    command:
+      - odoo
+      - --database=devel
+      - --db-filter=^devel$
+      - --workers=2
+      - --max-cron-threads=0
 
   db:
     extends:
@@ -94,6 +138,11 @@ services:
     networks: *public
     ports:
       - "127.0.0.1:${PORT_PREFIX:-19}025:8025"
+
+  clamav:
+    extends:
+      file: common.yaml
+      service: clamav
 
   wdb:
     platform: linux/amd64
@@ -185,3 +234,4 @@ networks:
 volumes:
   filestore:
   db:
+  clamav_db:

@@ -7,7 +7,7 @@ Initiative) compliance tests against OpenSPP.
 
 OpenSPP implements the DCI protocol for registry interoperability. This testing
 infrastructure validates our implementation against the official SPDCI compliance test
-suites.
+suite.
 
 ### Testing Scenarios
 
@@ -24,18 +24,11 @@ suites.
 ```
 dci/
 ├── README.md                    # This file
-├── submodules/                  # Git submodules (SPDCI compliance repos)
-│   ├── SR-Mockup-Compliance/
-│   ├── DR-Mockup-Compliance/
-│   ├── CRVS-Mockup-Compliance/
-│   ├── IBR-Mockup-Compliance/
-│   └── FR-Mockup-Compliance/
-├── config/                      # OpenSPP-specific endpoint configurations
-│   ├── helpers-sr.js            # SR server endpoint config
-│   ├── helpers-crvs.js          # CRVS mock endpoint config
-│   ├── helpers-dr.js            # DR mock endpoint config
-│   ├── helpers-ibr.js           # IBR mock endpoint config
-│   └── helpers-fr.js            # FR mock endpoint config
+├── submodules/
+│   ├── spdci-compliance/        # Unified SPDCI compliance test suite
+│   ├── spdci-api-standards/     # API specifications
+│   └── spdci-schemas/           # JSON schemas
+├── config/                      # Legacy configs (deprecated)
 └── results/                     # Test output (gitignored)
     ├── sr/
     ├── crvs/
@@ -53,53 +46,37 @@ dci/
    - `spp_dci`
    - `spp_dci_server`
    - `spp_dci_server_social`
-   - `spp_dci_compliance` (for test fixtures and callback verification)
+   - `spp_dci_compliance` (for test configuration and data)
 
-### Initialize
+### Run SR Server Compliance Tests
 
-```bash
-# Initialize submodules and directories
-invoke dci-init
-```
-
-### Run Tests
+The recommended way to run tests is using the invoke task:
 
 ```bash
-# Run all compliance tests
-invoke dci-compliance
+# From project root (openspp-odoo-19-migration/)
 
-# Run only SR server tests
+# Run SR server compliance tests (28 tests)
 invoke dci-compliance --registry=sr
 
-# Run only client tests (CRVS, DR, IBR, FR)
-invoke dci-compliance --registry=client
-
-# Run specific registry tests
-invoke dci-compliance --registry=dr
-
-# Run with specific Cucumber tags
-invoke dci-compliance --tags=@functional
-
-# Rebuild containers before running
-invoke dci-compliance --build
+# Other options:
+invoke dci-compliance --tags=@smoke     # Smoke tests only
+invoke dci-compliance -v                # Verbose output
 ```
 
-### Other Commands
+The invoke task automatically handles:
+
+1. Initializing git submodules (spdci-compliance test suite)
+2. Checking if `spp_dci_compliance` module is installed (installs if needed)
+3. Starting sr_compliance container with proper network aliases
+4. Restarting queue_worker so it can resolve sr_compliance hostname
+5. Waiting for queue_worker to be ready before running tests
+6. Following test output and cleaning up
+
+**Note:** If you've just reset the database with `invoke resetdb`, you may need to
+ensure the base DCI modules are installed first:
 
 ```bash
-# Start mock registries for manual testing
-invoke dci-mocks
-
-# Stop all DCI containers
-invoke dci-stop
-
-# View logs
-invoke dci-logs
-invoke dci-logs --follow
-invoke dci-logs --service=crvs_mock
-
-# Update submodules to latest
-invoke dci-update
+docker compose -f devel.yaml run --rm odoo odoo -d devel -i spp_dci_server_social --stop-after-init
 ```
 
 ## Architecture
@@ -110,93 +87,102 @@ invoke dci-update
 ┌─────────────────┐          ┌─────────────────┐
 │ SR Compliance   │  ─────►  │    OpenSPP      │
 │ Test Runner     │  tests   │  DCI API        │
+│ (spdci-         │          │                 │
+│  compliance)    │  ◄─────  │  Callbacks      │
+└─────────────────┘ callback └─────────────────┘
+```
+
+The SR compliance tests:
+
+1. Call OpenSPP's DCI API endpoints
+2. Validate responses match SPDCI specification
+3. For async operations, receive callbacks from OpenSPP
+
+Endpoints tested:
+
+- `POST /dci_api/v1/social/registry/sync/search` - Synchronous search
+- `POST /dci_api/v1/social/registry/search` - Async search
+- `POST /dci_api/v1/social/registry/subscribe` - Subscribe to events
+- `POST /dci_api/v1/social/registry/unsubscribe` - Unsubscribe
+- `POST /dci_api/v1/social/registry/txn/status` - Transaction status
+- `POST /dci_api/v1/social/registry/sync/txn/status` - Sync txn status
+
+### Client Testing (Mock Registries)
+
+```
+┌─────────────────┐          ┌─────────────────┐
+│ Client          │  ─────►  │  Mock Registry  │
+│ Compliance      │  tests   │  (Mockoon)      │
+│ Test Runner     │          │                 │
 └─────────────────┘          └─────────────────┘
 ```
 
-The SR compliance tests call OpenSPP's DCI API endpoints directly:
-
-- `/dci_api/v1/registry/social/sync/search`
-- `/dci_api/v1/registry/social/search` (async)
-- `/dci_api/v1/registry/social/subscribe`
-- etc.
-
-### Client Testing
-
-```
-┌─────────────────┐          ┌─────────────────┐          ┌─────────────────┐
-│ Client          │  ─────►  │  Mock Registry  │  ─────►  │    OpenSPP      │
-│ Compliance      │  tests   │  (Mockoon)      │ callback │  Callback       │
-│ Test Runner     │          │                 │          │  Endpoints      │
-└─────────────────┘          └─────────────────┘          └─────────────────┘
-```
-
-For client testing:
-
-1. Mock registries (Mockoon) simulate external CRVS/DR/IBR/FR systems
-2. Compliance tests validate the mock API responses
-3. Mock registries send callbacks to OpenSPP
-4. OpenSPP processes callbacks and logs them
-
-### Callback Verification
-
-The `spp_dci_compliance` module provides automatic callback verification:
-
-```bash
-# Query received callbacks
-curl http://localhost:8069/dci_api/v1/test/callbacks?transaction_id=123
-
-# Get callback statistics
-curl http://localhost:8069/dci_api/v1/test/callbacks/stats
-
-# Wait for a specific callback
-curl -X POST "http://localhost:8069/dci_api/v1/test/callbacks/wait?transaction_id=123&timeout_seconds=30"
-```
+For client testing, mock registries simulate external systems.
 
 ## Configuration
 
-### Endpoint Configuration (helpers-\*.js)
+### Required Odoo System Parameters
 
-Each `helpers-*.js` file configures the test runner for a specific registry type:
+The `spp_dci_compliance` module automatically configures these parameters on
+installation. The test script will install this module if not already installed.
 
-```javascript
-// helpers-sr.js - Points to OpenSPP SR server
-export const localhost = "http://openspp.dci.local:8069/dci_api/v1/";
-export const searchEndpoint = "registry/social/sync/search";
+| Parameter                         | Value                           | Description                               |
+| --------------------------------- | ------------------------------- | ----------------------------------------- |
+| `dci.api_tokens`                  | `compliance-test-api-key-12345` | Accepted Bearer tokens (comma-separated)  |
+| `dci.allow_unsigned_requests`     | `true`                          | Skip signature verification (dev only!)   |
+| `dci.allow_http_callbacks`        | `true`                          | Allow HTTP callback URLs (not just HTTPS) |
+| `dci.allow_internal_callback_ips` | `true`                          | Allow callbacks to Docker internal IPs    |
 
-// helpers-dr.js - Points to DR mock
-export const localhost = "http://dr.registry.mock:3000/";
-export const searchEndpoint = "dr/sync/search";
-```
+The module also creates:
+
+- A test sender with `sender_id = 'test-client'`
+- Test individuals with identifiers for search testing
+
+### Environment Variables
+
+| Variable                   | Default                         | Description                         |
+| -------------------------- | ------------------------------- | ----------------------------------- |
+| `DCI_AUTH_TOKEN`           | `compliance-test-api-key-12345` | Bearer token for API auth           |
+| `CALLBACK_WAIT_MS`         | `45000`                         | How long to wait for callbacks (ms) |
+| `CUCUMBER_STEP_TIMEOUT_MS` | `60000`                         | Cucumber step timeout (ms)          |
 
 ### Docker Network
 
 All DCI services communicate via the `dci_compliance` network:
 
-| Service   | Hostname             | Port |
-| --------- | -------------------- | ---- |
-| OpenSPP   | `openspp.dci.local`  | 8069 |
-| CRVS Mock | `crvs.registry.mock` | 3000 |
-| DR Mock   | `dr.registry.mock`   | 3000 |
-| IBR Mock  | `ibr.registry.mock`  | 3000 |
-| FR Mock   | `fr.registry.mock`   | 3000 |
+| Service   | Hostname             | Port  |
+| --------- | -------------------- | ----- |
+| OpenSPP   | `openspp.dci.local`  | 8069  |
+| SR Tests  | `sr_compliance`      | 19999 |
+| CRVS Mock | `crvs.registry.mock` | 3000  |
+| DR Mock   | `dr.registry.mock`   | 3000  |
+| IBR Mock  | `ibr.registry.mock`  | 3000  |
+| FR Mock   | `fr.registry.mock`   | 3000  |
 
 ## Test Results
 
-Test results are saved to `dci/results/<registry>/`:
+Test results are saved to `dci/results/<registry>/`.
 
-- `*.html` - Human-readable HTML report
-- `*.xml` - JUnit XML format (for CI/CD)
-- `*.message` - Cucumber messages
+Current SR Server compliance: **28/28 tests passing**
 
 ## Troubleshooting
 
+### After database reset (tests fail with 401/403)
+
+After running `invoke resetdb`, the DCI configuration is lost. Reinstall the compliance
+module:
+
+```bash
+docker compose -f devel.yaml run --rm odoo odoo -d devel -i spp_dci_compliance --stop-after-init
+```
+
+Or include `spp_dci_compliance` in your resetdb modules to ensure it's always installed.
+
 ### "Connection refused" errors
 
-1. Ensure OpenSPP is running: `docker compose ps`
+1. Ensure OpenSPP is running: `docker compose -f devel.yaml ps`
 2. Check the DCI API is enabled: visit
    `http://localhost:19069/dci_api/v1/.well-known/jwks.json`
-3. Verify network connectivity:
-   `docker compose -f devel.yaml -f docker-compose.dci.yml exec sr_compliance ping openspp.dci.local`
 
 ### "404 Not Found" on endpoints
 
@@ -204,38 +190,37 @@ Test results are saved to `dci/results/<registry>/`:
 2. Check the FastAPI endpoint is configured: Settings > Technical > FastAPI Endpoints
 3. Restart Odoo after module installation
 
-### Mock registry not starting
+### Callback tests failing (timing out)
 
-1. Check the Mockoon JSON file exists: `ls dci/submodules/*/mockoon-*.json`
-2. View mock logs: `invoke dci-logs --service=crvs_mock`
-3. Try rebuilding: `invoke dci-compliance --build`
+The invoke task handles callback orchestration automatically. If callbacks still fail:
 
-### Callback verification fails
+1. Verify the sr_compliance container has the `sr_compliance` network alias
+2. Verify queue_worker is on the `dci_compliance` network:
+   ```bash
+   docker network inspect openspp-odoo-19-migration_dci_compliance | grep queue_worker
+   ```
+3. Check callback URL validation settings are correct:
+   - `dci.allow_http_callbacks` = `true`
+   - `dci.allow_internal_callback_ips` = `true`
 
-1. Ensure `spp_dci_compliance` module is installed
-2. Check the callback log: Settings > DCI > Callback Logs
-3. Enable dev mode: Set `dci.allow_unsigned_requests = true` in system parameters
+### Database constraint errors
+
+If you see `NOT NULL constraint` errors on `callback_uri`:
+
+```bash
+docker compose -f devel.yaml exec db psql -U odoo -d devel -c \
+  "ALTER TABLE spp_dci_subscription ALTER COLUMN callback_uri DROP NOT NULL;"
+```
 
 ## Updating Compliance Tests
 
-The compliance test suites are maintained by SPDCI:
+The compliance test suite is maintained by OpenSPP:
 
-- [SR-Mockup-Compliance](https://github.com/spdci/SR-Mockup-Compliance)
-- [DR-Mockup-Compliance](https://github.com/spdci/DR-Mockup-Compliance)
-- [CRVS-Mockup-Compliance](https://github.com/spdci/CRVS-Mockup-Compliance)
-- [IBR-Mockup-Compliance](https://github.com/spdci/IBR-Mockup-Compliance)
-- [FR-Mockup-Compliance](https://github.com/spdci/FR-Mockup-Compliance)
+- [spdci-compliance](https://github.com/openspp/spdci-compliance)
 
-To update to the latest tests:
+To update:
 
 ```bash
-invoke dci-update
+cd dci/submodules/spdci-compliance
+git pull origin main
 ```
-
-## Contributing
-
-If you find issues with the compliance tests or want to propose improvements:
-
-1. For OpenSPP-specific issues, update the `helpers-*.js` configs
-2. For upstream compliance test issues, consider contributing to the SPDCI repos
-3. For callback verification improvements, update `spp_dci_compliance` module

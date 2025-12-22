@@ -78,6 +78,10 @@ services:
       - odoo
       - --workers=3
       - --max-cron-threads=1
+    depends_on:
+      - db
+      - smtp
+      - clamav
 
   db:
     extends:
@@ -143,6 +147,11 @@ services:
     command:
       - test -r /etc/mailhog/auth && export MH_AUTH_FILE=/etc/mailhog/auth; exec MailHog
 
+  clamav:
+    extends:
+      file: common.yaml
+      service: clamav
+
 networks:
   default:
     internal: ${DOODBA_NETWORK_INTERNAL-true}
@@ -159,3 +168,4 @@ volumes:
   filestore:
   db:
   smtpconf:
+  clamav_db:

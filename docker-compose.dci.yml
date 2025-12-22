@@ -1,0 +1,401 @@
+# docker-compose.dci.yml
+# DCI Compliance Testing Infrastructure for OpenSPP
+#
+# IMPORTANT: For callback tests to work correctly, services must be started
+# in the correct order. The queue worker needs to be able to resolve the
+# sr_compliance hostname, which requires sr_compliance to be running first.
+#
+# Usage (Recommended - Use the test script):
+#   ./scripts/run-dci-tests.sh sr       # Run SR server compliance tests
+#   ./scripts/run-dci-tests.sh all      # Run all tests
+#
+# Manual Usage:
+#   # Step 1: Start Odoo with DCI network
+#   docker compose -f devel.yaml -f docker-compose.dci.yml up -d odoo db
+#
+#   # Step 2: Run tests (this will start sr_compliance and restart queue_worker)
+#   docker compose -f devel.yaml -f docker-compose.dci.yml --profile sr-test run --rm sr_compliance
+#
+# Profiles:
+#   sr-test      - Test OpenSPP as Social Registry server
+#   crvs-test    - Test CRVS client with mock registry
+#   dr-test      - Test DR client with mock registry
+#   ibr-test     - Test IBR client with mock registry
+#   fr-test      - Test FR client with mock registry
+#   client-tests - All client tests (CRVS, DR, IBR, FR)
+#   all-tests    - All tests (SR server + all clients)
+#   mocks-only   - Start mock registries without running tests
+#
+# Environment Variables:
+#   DCI_AUTH_TOKEN          - Bearer token for API auth (default: compliance-test-api-key-12345)
+#   CALLBACK_WAIT_MS        - How long to wait for callbacks (default: 45000ms)
+#   CUCUMBER_STEP_TIMEOUT_MS - Cucumber step timeout (default: 60000ms)
+
+services:
+  # ============================================
+  # ODOO NETWORK EXTENSION
+  # Join the DCI compliance network so tests can reach Odoo
+  # ============================================
+  odoo:
+    networks:
+      default:
+      dci_compliance:
+        aliases:
+          - openspp.dci.local
+
+  # Queue worker also needs to be on the DCI network for callbacks
+  odoo_queue_worker:
+    networks:
+      default:
+      dci_compliance:
+
+  # ============================================
+  # MOCK REGISTRIES
+  # NOTE: Mock registries are currently disabled as the separate
+  # Mockup-Compliance repos have been consolidated into spdci-compliance.
+  # Client tests (CRVS, DR, IBR, FR) are not available until mock
+  # configurations are added to spdci-compliance.
+  # ============================================
+
+  # crvs_mock:
+  #   image: mockoon/cli:8.4.0
+  #   command: ["--data", "/data/mockoon.json", "--port", "3000", "--log-transaction"]
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance/mockoon-crvs.json:/data/mockoon.json:ro
+  #   networks:
+  #     dci_compliance:
+  #       aliases:
+  #         - crvs.registry.mock
+  #   profiles:
+  #     - crvs-test
+  #     - client-tests
+  #     - all-tests
+  #     - mocks-only
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
+  #     start_period: 5s
+
+  # dr_mock:
+  #   image: mockoon/cli:8.4.0
+  #   command: ["--data", "/data/mockoon.json", "--port", "3000", "--log-transaction"]
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance/mockoon-dr.json:/data/mockoon.json:ro
+  #   networks:
+  #     dci_compliance:
+  #       aliases:
+  #         - dr.registry.mock
+  #   profiles:
+  #     - dr-test
+  #     - client-tests
+  #     - all-tests
+  #     - mocks-only
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
+  #     start_period: 5s
+
+  # ibr_mock:
+  #   image: mockoon/cli:8.4.0
+  #   command: ["--data", "/data/mockoon.json", "--port", "3000", "--log-transaction"]
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance/mockoon-ibr.json:/data/mockoon.json:ro
+  #   networks:
+  #     dci_compliance:
+  #       aliases:
+  #         - ibr.registry.mock
+  #   profiles:
+  #     - ibr-test
+  #     - client-tests
+  #     - all-tests
+  #     - mocks-only
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
+  #     start_period: 5s
+
+  # fr_mock:
+  #   image: mockoon/cli:8.4.0
+  #   command: ["--data", "/data/mockoon.json", "--port", "3000", "--log-transaction"]
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance/mockoon-fr.json:/data/mockoon.json:ro
+  #   networks:
+  #     dci_compliance:
+  #       aliases:
+  #         - fr.registry.mock
+  #   profiles:
+  #     - fr-test
+  #     - client-tests
+  #     - all-tests
+  #     - mocks-only
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
+  #     start_period: 5s
+
+  # ============================================
+  # COMPLIANCE TEST RUNNERS
+  # These run the Gherkin/Cucumber tests from SPDCI repos
+  # ============================================
+
+  # SR Compliance: Tests OpenSPP as a Social Registry SERVER
+  # Uses SPDCI compliance test suite with built-in callback server
+  #
+  # IMPORTANT: For async callbacks to work, the queue_worker must be restarted
+  # AFTER this container starts, so Docker DNS can resolve 'sr_compliance'.
+  # The STARTUP_DELAY_SECONDS env var controls how long to wait before running
+  # tests, giving time for queue_worker to be restarted externally.
+  sr_compliance:
+    image: node:20-slim
+    working_dir: /app
+    depends_on:
+      - odoo
+      - odoo_queue_worker
+    environment:
+      # OpenSPP SR server endpoint (via Docker network)
+      API_BASE_URL: http://openspp.dci.local:8069/dci_api/v1/social/
+      # Bearer token for authentication
+      DCI_AUTH_TOKEN: ${DCI_AUTH_TOKEN:-compliance-test-api-key-12345}
+      # Callback server settings - sr_compliance container acts as callback receiver
+      CALLBACK_SERVER_ENABLED: "true"
+      CALLBACK_SERVER_HOST: sr_compliance
+      CALLBACK_SERVER_LISTEN_HOST: "0.0.0.0"
+      CALLBACK_SERVER_PORT: "19999"
+      # Callback wait time - must be long enough for queue_job to process
+      CALLBACK_WAIT_MS: ${CALLBACK_WAIT_MS:-45000}
+      # Step timeout for cucumber - must be >= CALLBACK_WAIT_MS
+      CUCUMBER_STEP_TIMEOUT_MS: ${CUCUMBER_STEP_TIMEOUT_MS:-60000}
+      # Test domain
+      DOMAIN: social
+      # Startup delay to allow queue_worker restart (set by invoke task)
+      STARTUP_DELAY_SECONDS: ${STARTUP_DELAY_SECONDS:-0}
+    volumes:
+      # Mount the spdci-compliance test suite (read-write for npm install)
+      - ./dci/submodules/spdci-compliance:/app
+      # Mount results directory (writable)
+      - ./dci/results/sr:/app/results
+    networks:
+      dci_compliance:
+        aliases:
+          - sr_compliance
+    profiles:
+      - sr-test
+      - all-tests
+    command: >
+      sh -c "
+        echo 'Installing dependencies...' &&
+        npm ci --prefer-offline 2>/dev/null || npm install &&
+        if [ \"$$STARTUP_DELAY_SECONDS\" -gt 0 ]; then
+          echo \"Waiting $$STARTUP_DELAY_SECONDS seconds for queue_worker to
+      restart...\" &&
+          sleep $$STARTUP_DELAY_SECONDS;
+        fi &&
+        echo 'Running SR compliance tests...' &&
+        npm test -- --tags '@profile=sr-registry'
+      "
+
+  # ============================================
+  # CLIENT COMPLIANCE TEST INFRASTRUCTURE
+  # Tests OpenSPP's DCI client (spp_dci_client) against a mock registry
+  # ============================================
+
+  # Mock Registry Server for Client Compliance Testing
+  # This server validates incoming requests from our DCI client
+  # and provides an admin API for test assertions
+  mock_registry:
+    image: node:20-slim
+    working_dir: /app
+    environment:
+      PORT: "3335"
+      DOMAIN: social
+    volumes:
+      - ./dci/submodules/spdci-compliance:/app
+    networks:
+      dci_compliance:
+        aliases:
+          - mock_registry
+    profiles:
+      - client-compliance
+      - all-tests
+    command: >
+      sh -c "
+        npm ci --prefer-offline 2>/dev/null || npm install &&
+        echo 'Starting mock registry server on port 3335...' &&
+        node common/mock-server/server.mjs
+      "
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3335/admin/healthcheck', (r) =>
+          process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # Client Compliance Test Runner
+  # Triggers our DCI client via the trigger endpoints and validates
+  # that requests sent to mock_registry are spec-compliant
+  client_compliance:
+    image: node:20-slim
+    working_dir: /app
+    depends_on:
+      mock_registry:
+        condition: service_healthy
+      odoo:
+        condition: service_started
+    environment:
+      # Mock registry admin API for assertions
+      MOCK_REGISTRY_ADMIN_URL: http://mock_registry:3335/admin
+      # Client trigger endpoint (our spp_dci_client_compliance module)
+      CLIENT_TRIGGER_URL: http://openspp.dci.local:8069/dci/test/trigger
+      # Test domain
+      DOMAIN: social
+      # Startup delay
+      STARTUP_DELAY_SECONDS: ${STARTUP_DELAY_SECONDS:-10}
+    volumes:
+      - ./dci/submodules/spdci-compliance:/app
+      - ./dci/results/client:/app/results
+    networks:
+      dci_compliance:
+    profiles:
+      - client-compliance
+      - all-tests
+    command: >
+      sh -c "
+        npm ci --prefer-offline 2>/dev/null || npm install &&
+        if [ \"$$STARTUP_DELAY_SECONDS\" -gt 0 ]; then
+          echo \"Waiting $$STARTUP_DELAY_SECONDS seconds for services to be ready...\"
+      &&
+          sleep $$STARTUP_DELAY_SECONDS;
+        fi &&
+        echo 'Running client compliance tests...' &&
+        npm test -- --tags '@profile=spmis-client and not @req=SP-CORE-CL-CONTENTTYPE-01
+      and not @req=SP-SEC-CL-AUTH-01 and not @req=SPDCI-CL-CONTENTTYPE-01' "
+
+  # ============================================
+  # LEGACY CLIENT COMPLIANCE TEST RUNNERS
+  # NOTE: These are currently disabled as mock registries
+  # are not available. See MOCK REGISTRIES section above.
+  # ============================================
+
+  # # CRVS Compliance: Tests OpenSPP querying CRVS mock
+  # crvs_compliance:
+  #   image: node:20-slim
+  #   working_dir: /app
+  #   depends_on:
+  #     crvs_mock:
+  #       condition: service_healthy
+  #   environment:
+  #     API_BASE_URL: http://crvs.registry.mock:3000/
+  #     DOMAIN: crvs
+  #     CALLBACK_WAIT_MS: ${CALLBACK_WAIT_MS:-45000}
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance:/app
+  #     - ./dci/results/crvs:/app/results
+  #   networks:
+  #     - dci_compliance
+  #   profiles:
+  #     - crvs-test
+  #     - client-tests
+  #     - all-tests
+  #   command: >
+  #     sh -c "
+  #       npm ci --prefer-offline 2>/dev/null || npm install &&
+  #       npm test -- --tags '@profile=crvs-registry'
+  #     "
+
+  # # DR Compliance: Tests OpenSPP querying DR mock
+  # dr_compliance:
+  #   image: node:20-slim
+  #   working_dir: /app
+  #   depends_on:
+  #     dr_mock:
+  #       condition: service_healthy
+  #   environment:
+  #     API_BASE_URL: http://dr.registry.mock:3000/
+  #     DOMAIN: dr
+  #     CALLBACK_WAIT_MS: ${CALLBACK_WAIT_MS:-45000}
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance:/app
+  #     - ./dci/results/dr:/app/results
+  #   networks:
+  #     - dci_compliance
+  #   profiles:
+  #     - dr-test
+  #     - client-tests
+  #     - all-tests
+  #   command: >
+  #     sh -c "
+  #       npm ci --prefer-offline 2>/dev/null || npm install &&
+  #       npm test -- --tags '@profile=dr-registry'
+  #     "
+
+  # # IBR Compliance: Tests OpenSPP querying IBR mock
+  # ibr_compliance:
+  #   image: node:20-slim
+  #   working_dir: /app
+  #   depends_on:
+  #     ibr_mock:
+  #       condition: service_healthy
+  #   environment:
+  #     API_BASE_URL: http://ibr.registry.mock:3000/
+  #     DOMAIN: ibr
+  #     CALLBACK_WAIT_MS: ${CALLBACK_WAIT_MS:-45000}
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance:/app
+  #     - ./dci/results/ibr:/app/results
+  #   networks:
+  #     - dci_compliance
+  #   profiles:
+  #     - ibr-test
+  #     - client-tests
+  #     - all-tests
+  #   command: >
+  #     sh -c "
+  #       npm ci --prefer-offline 2>/dev/null || npm install &&
+  #       npm test -- --tags '@profile=ibr-registry'
+  #     "
+
+  # # FR Compliance: Tests OpenSPP querying FR mock
+  # fr_compliance:
+  #   image: node:20-slim
+  #   working_dir: /app
+  #   depends_on:
+  #     fr_mock:
+  #       condition: service_healthy
+  #   environment:
+  #     API_BASE_URL: http://fr.registry.mock:3000/
+  #     DOMAIN: fr
+  #     CALLBACK_WAIT_MS: ${CALLBACK_WAIT_MS:-45000}
+  #   volumes:
+  #     - ./dci/submodules/spdci-compliance:/app
+  #     - ./dci/results/fr:/app/results
+  #   networks:
+  #     - dci_compliance
+  #   profiles:
+  #     - fr-test
+  #     - client-tests
+  #     - all-tests
+  #   command: >
+  #     sh -c "
+  #       npm ci --prefer-offline 2>/dev/null || npm install &&
+  #       npm test -- --tags '@profile=fr-registry'
+  #     "
+
+networks:
+  dci_compliance:
+    driver: bridge
+    # Not internal - allows communication between all DCI services

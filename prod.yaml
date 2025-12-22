@@ -94,6 +94,9 @@ services:
       traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.priority: 100
       traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.tls: "true"
       traefik.http.routers.OpenSPP-19-0-prod-allowedCrawlers-secure-0.tls.certResolver: letsencrypt
+    depends_on:
+      - db
+      - clamav
 
   db:
     extends:
@@ -120,6 +123,11 @@ services:
     depends_on:
       - db
 
+  clamav:
+    extends:
+      file: common.yaml
+      service: clamav
+
 networks:
   default:
     driver_opts:
@@ -131,3 +139,4 @@ volumes:
   backup_cache:
   filestore:
   db:
+  clamav_db:

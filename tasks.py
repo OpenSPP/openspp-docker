@@ -2804,3 +2804,462 @@ def scaffold(
             env=UID_ENV,
             pty=True,
         )
+
+
+# =============================================================================
+# DCI Compliance Testing
+# =============================================================================
+
+DCI_COMPOSE_FILES = f"{DOCKER_COMPOSE_CMD} -f devel.yaml -f docker-compose.dci.yml"
+DCI_REGISTRIES = ["sr", "crvs", "dr", "ibr", "fr"]
+DCI_PROFILE_MAP = {
+    "sr": "sr-test",
+    "crvs": "crvs-test",
+    "dr": "dr-test",
+    "ibr": "ibr-test",
+    "fr": "fr-test",
+    "client": "client-tests",
+    "client-compliance": "client-compliance",  # Tests our DCI client against mock registry
+    "all": "all-tests",
+    "mocks": "mocks-only",
+}
+
+
+@task(
+    help={
+        "registry": f"Registry to test: {', '.join(DCI_PROFILE_MAP.keys())} (default: all)",
+        "tags": "Cucumber tags to run (default: @smoke)",
+        "update_submodules": "Update DCI submodules before running",
+        "verbose": "Show detailed output",
+        "build": "Rebuild test containers",
+    },
+)
+def dci_compliance(
+    c,
+    registry="all",
+    tags="@smoke",
+    update_submodules=False,
+    verbose=False,
+    build=False,
+):
+    """Run DCI compliance tests.
+
+    Examples:
+        invoke dci-compliance                      # Run all tests
+        invoke dci-compliance --registry=sr       # SR server tests only
+        invoke dci-compliance --registry=client   # All client tests
+        invoke dci-compliance --tags=@functional  # Functional tests
+    """
+    if registry not in DCI_PROFILE_MAP:
+        raise exceptions.ParseError(
+            msg=f"Unknown registry: {registry}. Use: {', '.join(DCI_PROFILE_MAP.keys())}"
+        )
+
+    profile = DCI_PROFILE_MAP[registry]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Ensure submodules are initialized
+    with c.cd(str(PROJECT_ROOT)):
+        if update_submodules:
+            print("Updating DCI submodules...")
+            c.run("git submodule update --remote --merge dci/submodules/", echo=verbose)
+        else:
+            c.run("git submodule update --init dci/submodules/", echo=verbose)
+
+        # Create results directories
+        c.run("mkdir -p dci/results/{sr,crvs,dr,ibr,fr}", echo=verbose)
+
+        # Ensure spp_dci_compliance module is installed (required for test config)
+        print("\nChecking if spp_dci_compliance module is installed...")
+        result = c.run(
+            f"{DOCKER_COMPOSE_CMD} -f devel.yaml exec -T db psql -U odoo -d devel -tAc "
+            "\"SELECT state FROM ir_module_module WHERE name='spp_dci_compliance'\"",
+            warn=True,
+            hide=True,
+        )
+        module_state = result.stdout.strip() if result.ok else ""
+
+        if module_state != "installed":
+            print("spp_dci_compliance module not installed. Installing...")
+            c.run(
+                f"{DOCKER_COMPOSE_CMD} -f devel.yaml run --rm odoo "
+                "odoo -d devel -i spp_dci_compliance --stop-after-init",
+                echo=verbose,
+            )
+            print("Module installed. Restarting Odoo...")
+            c.run(f"{DOCKER_COMPOSE_CMD} -f devel.yaml restart odoo", echo=verbose)
+            import time
+
+            time.sleep(10)  # Wait for Odoo to restart
+        else:
+            print("spp_dci_compliance module is installed.")
+
+        # Build if requested
+        if build:
+            print("Building DCI test containers...")
+            c.run(
+                f"{DCI_COMPOSE_FILES} --profile {profile} build",
+                env=UID_ENV,
+                echo=verbose,
+            )
+
+        # Run tests based on registry type
+        services = []
+        if registry == "all":
+            services = [
+                "sr_compliance",
+                "client_compliance",
+                "crvs_compliance",
+                "dr_compliance",
+                "ibr_compliance",
+                "fr_compliance",
+            ]
+        elif registry == "client":
+            services = [
+                "crvs_compliance",
+                "dr_compliance",
+                "ibr_compliance",
+                "fr_compliance",
+            ]
+        elif registry == "client-compliance":
+            services = ["client_compliance"]
+        elif registry == "mocks":
+            # Just start mocks, don't run tests
+            print("Starting mock registries...")
+            c.run(
+                f"{DCI_COMPOSE_FILES} --profile mocks-only up -d",
+                env=UID_ENV,
+                echo=verbose,
+            )
+            print("Mock registries are running. Use 'invoke dci-stop' to stop them.")
+            return
+        else:
+            services = [f"{registry}_compliance"]
+
+        # Run each test service
+        for service in services:
+            print(f"\n{'=' * 60}")
+            print(f"Running {service.upper().replace('_', ' ')}")
+            print(f"{'=' * 60}")
+
+            # For SR tests, we need special handling for async callbacks to work:
+            # 1. Start sr_compliance with docker compose up (proper network aliases)
+            # 2. Immediately restart queue_worker (picks up sr_compliance DNS)
+            # 3. sr_compliance waits (STARTUP_DELAY_SECONDS) before running tests
+            # 4. This ensures queue_worker can resolve sr_compliance for callbacks
+            if service == "sr_compliance":
+                import time
+
+                # Set startup delay for sr_compliance to wait for queue_worker restart
+                startup_delay = 60  # seconds
+
+                # Step 1: Start sr_compliance with docker compose up -d
+                # Use STARTUP_DELAY_SECONDS env var so it waits before running tests
+                print(
+                    f"Starting sr_compliance (will wait {startup_delay}s for queue_worker)..."
+                )
+                sr_env = {
+                    **UID_ENV,
+                    "STARTUP_DELAY_SECONDS": str(startup_delay),
+                    "CUCUMBER_TAGS": tags,
+                }
+                c.run(
+                    f"{DCI_COMPOSE_FILES} --profile {profile} up -d {service}",
+                    env=sr_env,
+                    echo=verbose,
+                    warn=True,
+                )
+
+                # Step 2: Wait a moment for container to be on network
+                time.sleep(3)
+
+                # Step 3: Restart queue_worker so it can resolve sr_compliance hostname
+                print("Restarting queue_worker for DNS resolution...")
+                c.run(
+                    f"{DCI_COMPOSE_FILES} up -d --force-recreate odoo_queue_worker",
+                    env=UID_ENV,
+                    echo=verbose,
+                    warn=True,
+                )
+
+                # Step 4: Follow sr_compliance logs until completion
+                print("Following test output (this may take a few minutes)...")
+                c.run(
+                    f"{DCI_COMPOSE_FILES} --profile {profile} logs -f {service}",
+                    env=UID_ENV,
+                    echo=verbose,
+                    warn=True,
+                )
+
+                # Step 5: Clean up
+                c.run(
+                    f"{DCI_COMPOSE_FILES} --profile {profile} rm -f {service}",
+                    env=UID_ENV,
+                    warn=True,
+                    hide=True,
+                )
+
+            elif service == "client_compliance":
+                import time
+
+                # For client compliance tests, we need:
+                # 1. spp_dci_client_compliance module installed
+                # 2. mock_registry running
+                # 3. client_compliance test runner
+
+                # Check if spp_dci_client_compliance module is installed
+                print("Checking if spp_dci_client_compliance module is installed...")
+                result = c.run(
+                    f"{DOCKER_COMPOSE_CMD} -f devel.yaml exec -T db psql -U odoo -d devel -tAc "
+                    "\"SELECT state FROM ir_module_module WHERE name='spp_dci_client_compliance'\"",
+                    warn=True,
+                    hide=True,
+                )
+                module_state = result.stdout.strip() if result.ok else ""
+
+                if module_state != "installed":
+                    print(
+                        "spp_dci_client_compliance module not installed. Installing..."
+                    )
+                    c.run(
+                        f"{DOCKER_COMPOSE_CMD} -f devel.yaml run --rm odoo "
+                        "odoo -d devel -i spp_dci_client_compliance --stop-after-init",
+                        echo=verbose,
+                    )
+                    print("Module installed. Restarting Odoo...")
+                    c.run(
+                        f"{DOCKER_COMPOSE_CMD} -f devel.yaml restart odoo", echo=verbose
+                    )
+                    time.sleep(10)  # Wait for Odoo to restart
+                else:
+                    print("spp_dci_client_compliance module is installed.")
+
+                # Create results directory
+                c.run("mkdir -p dci/results/client", echo=verbose)
+
+                # Start mock_registry first
+                print("Starting mock_registry...")
+                c.run(
+                    f"{DCI_COMPOSE_FILES} --profile {profile} up -d mock_registry",
+                    env=UID_ENV,
+                    echo=verbose,
+                    warn=True,
+                )
+
+                # Wait for mock_registry to be healthy
+                print("Waiting for mock_registry to be healthy...")
+                for _ in range(30):
+                    result = c.run(
+                        f"{DCI_COMPOSE_FILES} exec -T mock_registry "
+                        "wget -q --spider http://localhost:3335/admin/healthcheck",
+                        warn=True,
+                        hide=True,
+                    )
+                    if result.ok:
+                        break
+                    time.sleep(1)
+                else:
+                    print("Warning: mock_registry may not be fully healthy")
+
+                # Start client_compliance tests
+                print("Starting client compliance tests...")
+                client_env = {
+                    **UID_ENV,
+                    "STARTUP_DELAY_SECONDS": "10",
+                    "CUCUMBER_TAGS": tags
+                    if "@profile" in tags
+                    else f"@profile=spmis-client {tags}",
+                }
+                c.run(
+                    f"{DCI_COMPOSE_FILES} --profile {profile} up -d {service}",
+                    env=client_env,
+                    echo=verbose,
+                    warn=True,
+                )
+
+                # Follow test logs
+                print("Following test output...")
+                c.run(
+                    f"{DCI_COMPOSE_FILES} --profile {profile} logs -f {service}",
+                    env=UID_ENV,
+                    echo=verbose,
+                    warn=True,
+                )
+
+                # Clean up
+                c.run(
+                    f"{DCI_COMPOSE_FILES} --profile {profile} rm -f {service} mock_registry",
+                    env=UID_ENV,
+                    warn=True,
+                    hide=True,
+                )
+
+            else:
+                # For other tests, run normally
+                try:
+                    c.run(
+                        f"{DCI_COMPOSE_FILES} --profile {profile} "
+                        f"run --rm "
+                        f"-e CUCUMBER_TAGS='{tags}' "
+                        f"-e DCI_RESULT_NAME='{service}_{timestamp}' "
+                        f"{service}",
+                        env=UID_ENV,
+                        echo=verbose,
+                        warn=True,
+                    )
+                except Exception as e:
+                    print(f"Warning: {service} tests may have failed: {e}")
+
+        # Summary
+        print(f"\n{'=' * 60}")
+        print("DCI Compliance Test Results")
+        print(f"{'=' * 60}")
+        print("Results saved to: dci/results/")
+        c.run("ls -la dci/results/*/", warn=True, echo=True)
+
+
+@task(
+    help={
+        "install_modules": "Install DCI modules after initialization (requires Odoo to be running)",
+    },
+)
+def dci_init(c, install_modules=False):
+    """Initialize DCI compliance testing infrastructure.
+
+    Clones/updates submodules and creates result directories.
+    Optionally installs required Odoo modules.
+
+    Examples:
+        invoke dci-init                     # Initialize only
+        invoke dci-init --install-modules   # Initialize and install modules
+    """
+    print("Initializing DCI compliance infrastructure...")
+
+    with c.cd(str(PROJECT_ROOT)):
+        # Init submodules
+        c.run("git submodule update --init --recursive dci/submodules/")
+
+        # Create directories
+        c.run("mkdir -p dci/results/{sr,crvs,dr,ibr,fr}")
+        c.run("mkdir -p dci/config")
+
+        # Check for config files
+        print("\nChecking configuration files...")
+        for reg in DCI_REGISTRIES:
+            config_file = PROJECT_ROOT / "dci" / "config" / f"helpers-{reg}.js"
+            if config_file.exists():
+                print(f"  OK: {config_file.name}")
+            else:
+                print(f"  WARNING: Missing {config_file.name}")
+
+        # Check submodules
+        print("\nChecking submodules...")
+        submodules = [
+            "spdci-compliance",
+            "spdci-schemas",
+            "spdci-api-standards",
+        ]
+        for submodule_name in submodules:
+            submodule = PROJECT_ROOT / "dci" / "submodules" / submodule_name
+            if submodule.exists() and any(submodule.iterdir()):
+                print(f"  OK: {submodule_name}")
+            else:
+                print(f"  WARNING: Missing or empty {submodule_name}")
+
+        # Install modules if requested
+        if install_modules:
+            print("\nInstalling DCI modules...")
+            c.run(
+                f"{DOCKER_COMPOSE_CMD} -f devel.yaml run --rm odoo odoo -d devel "
+                "-i spp_dci_compliance --stop-after-init",
+                env=UID_ENV,
+            )
+            print("DCI modules installed successfully.")
+
+    print("\nDCI compliance infrastructure initialized.")
+    if not install_modules:
+        print("\nNext steps:")
+        print("  1. Start OpenSPP: docker compose up -d")
+        print("  2. Install modules: invoke dci-init --install-modules")
+        print("  3. Run tests: invoke dci-compliance --registry=sr")
+    else:
+        print("\nReady to run tests: invoke dci-compliance --registry=sr")
+
+
+@task
+def dci_update(c):
+    """Update DCI submodules to latest versions."""
+    print("Updating DCI compliance submodules...")
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run("git submodule update --remote --merge dci/submodules/")
+        print("\nSubmodule status:")
+        c.run("git status dci/submodules/")
+
+
+@task
+def dci_stop(c):
+    """Stop DCI mock registries and test containers."""
+    print("Stopping DCI containers...")
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(
+            f"{DCI_COMPOSE_FILES} --profile all-tests down",
+            env=UID_ENV,
+            warn=True,
+        )
+
+    print("DCI containers stopped.")
+
+
+@task
+def dci_logs(c, service="", follow=False):
+    """View logs from DCI containers.
+
+    Args:
+        service: Specific service to view logs for (e.g., crvs_mock, sr_compliance)
+        follow: Follow log output
+    """
+    cmd = f"{DCI_COMPOSE_FILES} --profile all-tests logs"
+    if follow:
+        cmd += " -f"
+    if service:
+        cmd += f" {service}"
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd, env=UID_ENV, pty=True)
+
+
+@task(
+    help={
+        "registry": "Registry mock to start (crvs, dr, ibr, fr, or 'all')",
+    },
+)
+def dci_mocks(c, registry="all"):
+    """Start DCI mock registries for manual testing.
+
+    Examples:
+        invoke dci-mocks                 # Start all mocks
+        invoke dci-mocks --registry=dr   # Start only DR mock
+    """
+    if registry == "all":
+        services = "crvs_mock dr_mock ibr_mock fr_mock"
+        profile = "mocks-only"
+    elif registry in ["crvs", "dr", "ibr", "fr"]:
+        services = f"{registry}_mock"
+        profile = f"{registry}-test"
+    else:
+        raise exceptions.ParseError(
+            msg=f"Unknown registry: {registry}. Use: crvs, dr, ibr, fr, or all"
+        )
+
+    print(f"Starting mock registry: {services}")
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(
+            f"{DCI_COMPOSE_FILES} --profile {profile} up -d {services}",
+            env=UID_ENV,
+        )
+
+    print("\nMock registries running.")
+    print("\nUse 'invoke dci-stop' to stop them.")

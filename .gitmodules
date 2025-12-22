@@ -1,18 +1,6 @@
-[submodule "dci/submodules/SR-Mockup-Compliance"]
-	path = dci/submodules/SR-Mockup-Compliance
-	url = https://github.com/spdci/SR-Mockup-Compliance.git
-[submodule "dci/submodules/DR-Mockup-Compliance"]
-	path = dci/submodules/DR-Mockup-Compliance
-	url = https://github.com/spdci/DR-Mockup-Compliance.git
-[submodule "dci/submodules/CRVS-Mockup-Compliance"]
-	path = dci/submodules/CRVS-Mockup-Compliance
-	url = https://github.com/spdci/CRVS-Mockup-Compliance.git
-[submodule "dci/submodules/IBR-Mockup-Compliance"]
-	path = dci/submodules/IBR-Mockup-Compliance
-	url = https://github.com/spdci/IBR-Mockup-Compliance.git
-[submodule "dci/submodules/FR-Mockup-Compliance"]
-	path = dci/submodules/FR-Mockup-Compliance
-	url = https://github.com/spdci/FR-Mockup-Compliance.git
+[submodule "dci/submodules/spdci-compliance"]
+	path = dci/submodules/spdci-compliance
+	url = https://github.com/openspp/spdci-compliance.git
 [submodule "dci/submodules/spdci-schemas"]
 	path = dci/submodules/spdci-schemas
 	url = https://github.com/spdci/schemas.git

@@ -16,6 +16,11 @@ services:
       PGUSER: &dbuser "odoo"
       PROXY_MODE: "true"
       PYTHONWARNINGS: "ignore::DeprecationWarning:imghdr"
+      CLAMAV_HOST: "clamav"
+      CLAMAV_PORT: "3310"
+      # Master key for spp_key_management encryption (base64-encoded 32 bytes)
+      # Generate with: python -c "import secrets, base64; print(base64.b64encode(secrets.token_bytes(32)).decode())"
+      SPP_MASTER_KEY: "${SPP_MASTER_KEY:-}"
     tty: true
     volumes:
       - filestore:/var/lib/odoo:z
@@ -49,6 +54,13 @@ services:
   smtpfake:
     platform: linux/amd64
     image: docker.io/mailhog/mailhog
+
+  clamav:
+    platform: linux/amd64
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes:
+      - clamav_db:/var/lib/clamav:z
 
   backup:
     image: ghcr.io/tecnativa/docker-duplicity-postgres-s3:latest
