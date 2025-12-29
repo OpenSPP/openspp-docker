@@ -30,9 +30,10 @@ The official quick start guide is located [here](https://docs.openspp.org/gettin
 
 - Docker and Docker Compose
 - Git
-- Python 3.8+ with pip
+- Python 3.13 with pip
 - Invoke (`pip install invoke`)
 - Git-aggregator (`pip install git-aggregator`)
+- pre-commit (`pip install pre-commit`)
 
 ### Setup
 
